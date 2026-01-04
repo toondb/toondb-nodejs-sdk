@@ -1,0 +1,296 @@
+# =============================================================================
+# ToonDB Node.js SDK Release Pipeline
+# =============================================================================
+#
+# WORKFLOW FLOW:
+#
+# 1. Download binaries from toondb/toondb (PARALLEL)
+#    - Linux x86_64
+#    - macOS ARM64
+#    - Windows x64
+# 2. Build & Publish (SEQUENTIAL)
+#    - Bundle all binaries into the package
+#    - Publish to npm
+#    - Create GitHub Release
+#
+# =============================================================================
+# REQUIRED SETUP:
+# =============================================================================
+#
+# 1. Create GitHub Environment "toondb-workflow"
+# 2. Add Environment Secret: NPM_TOKEN
+# 3. GITHUB_TOKEN (provided automatically)
+#
+# =============================================================================
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 0.3.1)'
+        required: true
+        type: string
+      toondb_version:
+        description: 'Toondb release version (e.g., 0.3.1) - MUST match an existing toondb/toondb release tag'
+        required: false
+        type: string
+      dry_run:
+        description: 'Dry run (validate without publishing)'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  TOONDB_REPO: toondb/toondb
+
+jobs:
+  # ===========================================================================
+  # Download Binaries from Main Repo
+  # ===========================================================================
+  download-binaries:
+    name: Download Binaries (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            archive_ext: tar.gz
+          - target: aarch64-apple-darwin
+            archive_ext: tar.gz
+          - target: x86_64-pc-windows-msvc
+            archive_ext: zip
+
+    steps:
+      - name: Download binaries from main ToonDB release
+        shell: bash
+        run: |
+          # Use toondb_version if provided, otherwise use version
+          VERSION="${{ inputs.toondb_version }}"
+          if [ -z "$VERSION" ]; then
+            VERSION="${{ inputs.version }}"
+          fi
+          
+          TAG="v${VERSION}"
+          TARGET="${{ matrix.target }}"
+          
+          if [ "${{ matrix.archive_ext }}" = "zip" ]; then
+            ASSET_NAME="toondb-${VERSION}-${TARGET}.zip"
+          else
+            ASSET_NAME="toondb-${VERSION}-${TARGET}.tar.gz"
+          fi
+          
+          DOWNLOAD_URL="https://github.com/${{ env.TOONDB_REPO }}/releases/download/${TAG}/${ASSET_NAME}"
+          echo "Downloading ToonDB binaries from main repository:"
+          echo "  Repository: ${{ env.TOONDB_REPO }}"
+          echo "  Version: ${VERSION}"
+          echo "  URL: $DOWNLOAD_URL"
+          
+          curl -L -f -o release-archive.${{ matrix.archive_ext }} "$DOWNLOAD_URL"
+          
+          # Extract the archive
+          mkdir -p extracted
+          if [ "${{ matrix.archive_ext }}" = "zip" ]; then
+            unzip -o release-archive.zip -d extracted
+          else
+            tar -xzf release-archive.tar.gz -C extracted
+          fi
+          
+          # Normalize structure: ensure we have a directory named after target containing the files
+          # The tarballs/zips usually contain a folder named after the target (e.g., x86_64-unknown-linux-gnu/toondb-server)
+          # We want to upload just the contents or the folder itself to artifacts.
+          
+          echo "=== Extracted Contents ==="
+          ls -R extracted/
+          
+          # Check if the extracted content is a single folder matching the target or nested
+          # We want to prepare a clean folder 'binaries/target'
+          mkdir -p binaries/${TARGET}
+          
+          # Find binaries and copy them
+          # Linux/Mac
+          find extracted -name "toondb-bulk" -exec cp {} binaries/${TARGET}/ \;
+          find extracted -name "toondb-server" -exec cp {} binaries/${TARGET}/ \;
+          find extracted -name "toondb-grpc-server" -exec cp {} binaries/${TARGET}/ \;
+          
+          # Windows
+          find extracted -name "toondb-bulk.exe" -exec cp {} binaries/${TARGET}/ \;
+          find extracted -name "toondb-grpc-server.exe" -exec cp {} binaries/${TARGET}/ \;
+          
+          # Make executable (Linux/Mac)
+          if [ "${TARGET}" != "x86_64-pc-windows-msvc" ]; then
+            chmod +x binaries/${TARGET}/*
+          fi
+          
+          echo "=== Prepared Binaries ==="
+          ls -la binaries/${TARGET}/
+
+      - name: Upload binary artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.target }}
+          path: binaries/${{ matrix.target }}/
+          retention-days: 1
+
+  # ===========================================================================
+  # Build and Publish
+  # ===========================================================================
+  publish-npm:
+    name: Build & Publish npm
+    runs-on: ubuntu-latest
+    needs: download-binaries
+    environment:
+      name: toondb-workflow
+    permissions:
+      contents: write # For creating GitHub release
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Download all binaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: binaries-*
+          path: binaries/
+          merge-multiple: true
+
+      - name: Organize binaries for package
+        run: |
+          # The binaries are downloaded into binaries/ directory (flat if merge-multiple used?)
+          # Actually, if we use merge-multiple: false (default), we get directory per artifact: binaries/binaries-target/...
+          # If we use merge-multiple: true, we might lose directory structure if filenames collide, 
+          # BUT we uploaded 'binaries/target/' folder structure in previous job? 
+          # Let's check how we uploaded. path: binaries/${{ matrix.target }}/. 
+          # If we upload folder contents, merge-multiple:true might mix them up if names are same.
+          # The names ARE same (toondb-server). So we cannot just merge multiple flat.
+          
+          # Let's NOT merge multiple for safety, or better, let's restructure download.
+          # We need to construct: _bin/<target>/<files>
+          
+          mkdir -p _bin
+          
+          # We will download separately to be safe or process carefully.
+          # Let's inspect what download-artifact does.
+          # If we use pattern, it downloads into 'binaries/binaries-TARGET'.
+          
+          ls -R binaries/
+          
+          for target in x86_64-unknown-linux-gnu aarch64-apple-darwin x86_64-pc-windows-msvc; do
+            mkdir -p "_bin/$target"
+            
+            # Source path depends on how download-artifact handles patterns.
+            # Usually strict directory matching artifact name.
+            SRC="binaries/binaries-$target"
+            
+            if [ -d "$SRC" ]; then
+              cp "$SRC"/* "_bin/$target/"
+              
+              # Make executable
+              if [ "$target" != "x86_64-pc-windows-msvc" ]; then
+                chmod +x "_bin/$target/"*
+              fi
+            else
+               echo "WARNING: No binaries found for $target at $SRC"
+            fi
+          done
+          
+          echo "=== Binary Structure ==="
+          ls -R _bin/
+
+      - name: Update package version
+        run: |
+          npm version ${{ inputs.version }} --no-git-tag-version --allow-same-version
+
+      - name: Install dependencies and build
+        run: |
+          npm ci
+          npm run build
+
+      - name: Run tests
+        run: |
+          npm test
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "🔍 Dry run - validating package..."
+            # Create tarball to verify content
+            npm pack
+            echo "Package content:"
+            tar -tf *.tgz
+            
+            echo "Running dry-run publish..."
+            npm publish --dry-run --access public
+          else
+            npm publish --access public
+          fi
+
+      - name: Create GitHub Release
+        if: ${{ inputs.dry_run != true }}
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ inputs.version }}
+          name: v${{ inputs.version }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          body: |
+            ## ToonDB Node.js SDK v${{ inputs.version }}
+            
+            Wraps pre-built binaries from [toondb/toondb v${{ inputs.toondb_version || inputs.version }}](https://github.com/toondb/toondb/releases/tag/v${{ inputs.toondb_version || inputs.version }})
+            
+            ### Installation
+            
+            ```bash
+            npm install @sushanth/toondb
+            ```
+            
+            ### Supported Platforms
+            - Linux x64
+            - macOS ARM64
+            - Windows x64
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ===========================================================================
+  # Summary
+  # ===========================================================================
+  summary:
+    name: Release Summary
+    runs-on: ubuntu-latest
+    needs: publish-npm
+    if: always()
+    steps:
+      - name: Generate Summary
+        run: |
+          echo "## 🚀 ToonDB Node.js Release v${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            echo "**Mode:** 🧪 Dry Run" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Mode:** 🚀 Production" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Binaries" >> $GITHUB_STEP_SUMMARY
+          TOONDB_VERSION="${{ inputs.toondb_version }}"
+          if [ -z "$TOONDB_VERSION" ]; then
+            TOONDB_VERSION="${{ inputs.version }}"
+          fi
+          echo "Pulled from: [toondb/toondb v${TOONDB_VERSION}](https://github.com/${{ env.TOONDB_REPO }}/releases/tag/v${TOONDB_VERSION})" >> $GITHUB_STEP_SUMMARY
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Status" >> $GITHUB_STEP_SUMMARY
+          echo "| Step | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Publish npm | ${{ needs.publish-npm.result }} |" >> $GITHUB_STEP_SUMMARY
