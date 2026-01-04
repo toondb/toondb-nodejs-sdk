@@ -217,18 +217,26 @@ jobs:
         run: |
           npm test
 
+      - name: Create package tarball
+        run: |
+          npm pack
+          echo "Package content:"
+          tar -tf *.tgz
+
+      - name: Upload npm package artifact (for testing)
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-package-v${{ inputs.version }}
+          path: "*.tgz"
+          retention-days: 1
+
       - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ "${{ inputs.dry_run }}" = "true" ]; then
-            echo "🔍 Dry run - validating package..."
-            # Create tarball to verify content
-            npm pack
-            echo "Package content:"
-            tar -tf *.tgz
-            
-            echo "Running dry-run publish..."
+            echo "🔍 Dry run - skipping publish"
+            echo "To test the package, download the npm-package-v${{ inputs.version }} artifact from the summary."
             npm publish --dry-run --access public
           else
             npm publish --access public
