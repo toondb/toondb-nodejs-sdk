@@ -51,4 +51,4 @@ export {
   isAnalyticsDisabled,
 } from './analytics';
 
-export const VERSION = '0.3.1';
+export const VERSION = '0.3.2';

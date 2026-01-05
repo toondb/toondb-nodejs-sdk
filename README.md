@@ -639,7 +639,7 @@ await db.open(); // Must call open() first!
 ```
 
 **"Path segment truncated" (v0.2.5):**
-- **Fixed in v0.2.6!** Upgrade: `npm install @sushanth/toondb@0.3.1`
+- **Fixed in v0.2.6!** Upgrade: `npm install @sushanth/toondb@0.3.2`
 
 **Server not found:**
 ```typescript
@@ -666,8 +666,8 @@ npm install @sushanth/toondb
 
 ```bash
 # Clone repo
-git clone https://github.com/toondb/toondb
-cd toondb/toondb-js
+git clone https://github.com/toondb/toondb-nodejs-sdk
+cd toondb-nodejs-sdk
 
 # Install dependencies
 npm install
@@ -677,7 +677,7 @@ npm run build
 
 # Create tarball
 npm pack
-# Creates: sushanth-toondb-0.3.1.tgz
+# Creates: sushanth-toondb-0.3.2.tgz
 ```
 
 ## License
@@ -687,12 +687,11 @@ Apache License 2.0
 ## Links
 
 - [Documentation](https://docs.toondb.dev)
-- [Python SDK](../toondb-python-sdk)
-- [Go SDK](../toondb-go)
-- [GitHub](https://github.com/toondb/toondb)
+- [GitHub](https://github.com/toondb/toondb-nodejs-sdk)
+- [examples](https://github.com/toondb/toondb-nodejs-examples)
 - [npm Package](https://www.npmjs.com/package/toondb)
 
 ## Support
 
-- GitHub Issues: https://github.com/toondb/toondb/issues
+- GitHub Issues: https://github.com/toondb/toondb-nodejs-sdk/issues
 - Email: sushanth@toondb.dev

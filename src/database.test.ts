@@ -58,8 +58,8 @@ describe('ToonDB SDK Comprehensive Tests', () => {
       expect(VERSION).toMatch(/^\d+\.\d+\.\d+/);
     });
 
-    it('should be 0.3.1', () => {
-      expect(VERSION).toBe('0.3.1');
+    it('should be 0.3.2', () => {
+      expect(VERSION).toBe('0.3.2');
     });
   });
 
@@ -145,36 +145,36 @@ describe('ToonDB SDK Comprehensive Tests', () => {
 
       it('should get a value by key', async () => {
         mockClient.get.mockResolvedValue(Buffer.from('test value'));
-        
+
         const result = await db.get('test-key');
-        
+
         expect(result).toEqual(Buffer.from('test value'));
         expect(mockClient.get).toHaveBeenCalledWith(Buffer.from('test-key'));
       });
 
       it('should get a value with Buffer key', async () => {
         mockClient.get.mockResolvedValue(Buffer.from('test value'));
-        
+
         const key = Buffer.from('binary-key');
         const result = await db.get(key);
-        
+
         expect(result).toEqual(Buffer.from('test value'));
         expect(mockClient.get).toHaveBeenCalledWith(key);
       });
 
       it('should return null for non-existent key', async () => {
         mockClient.get.mockResolvedValue(null);
-        
+
         const result = await db.get('missing-key');
-        
+
         expect(result).toBeNull();
       });
 
       it('should put a key-value pair', async () => {
         mockClient.put.mockResolvedValue(undefined);
-        
+
         await db.put('my-key', 'my-value');
-        
+
         expect(mockClient.put).toHaveBeenCalledWith(
           Buffer.from('my-key'),
           Buffer.from('my-value')
@@ -183,19 +183,19 @@ describe('ToonDB SDK Comprehensive Tests', () => {
 
       it('should put with Buffer values', async () => {
         mockClient.put.mockResolvedValue(undefined);
-        
+
         const key = Buffer.from('binary-key');
         const value = Buffer.from('binary-value');
         await db.put(key, value);
-        
+
         expect(mockClient.put).toHaveBeenCalledWith(key, value);
       });
 
       it('should delete a key', async () => {
         mockClient.delete.mockResolvedValue(undefined);
-        
+
         await db.delete('my-key');
-        
+
         expect(mockClient.delete).toHaveBeenCalledWith(Buffer.from('my-key'));
       });
     });
@@ -211,18 +211,18 @@ describe('ToonDB SDK Comprehensive Tests', () => {
 
       it('should getPath', async () => {
         mockClient.getPath.mockResolvedValue(Buffer.from('path value'));
-        
+
         const result = await db.getPath('users/alice/email');
-        
+
         expect(result).toEqual(Buffer.from('path value'));
         expect(mockClient.getPath).toHaveBeenCalledWith('users/alice/email');
       });
 
       it('should putPath', async () => {
         mockClient.putPath.mockResolvedValue(undefined);
-        
+
         await db.putPath('users/alice/email', 'alice@example.com');
-        
+
         expect(mockClient.putPath).toHaveBeenCalledWith(
           'users/alice/email',
           Buffer.from('alice@example.com')
@@ -309,7 +309,7 @@ describe('ToonDB SDK Comprehensive Tests', () => {
         const fs = require('fs');
         fs.existsSync = jest.fn().mockReturnValue(true);
         const db = await Database.open('./test_db');
-        
+
         mockClient.stats.mockResolvedValue({
           memtableSizeBytes: 1024,
           walSizeBytes: 512,
@@ -331,7 +331,7 @@ describe('ToonDB SDK Comprehensive Tests', () => {
     it('should throw when operating on committed transaction', async () => {
       const fs = require('fs');
       fs.existsSync = jest.fn().mockReturnValue(true);
-      
+
       const mockClient = {
         get: jest.fn(),
         put: jest.fn().mockResolvedValue(undefined),
@@ -344,7 +344,7 @@ describe('ToonDB SDK Comprehensive Tests', () => {
       (IpcClient.connect as jest.Mock) = jest.fn().mockResolvedValue(mockClient);
 
       const db = await Database.open('./test_db');
-      
+
       await db.withTransaction(async (txn) => {
         await txn.put('key', 'value');
         // Transaction commits after this
@@ -401,7 +401,7 @@ describe('ToonDB SDK Comprehensive Tests', () => {
         const normalized = VectorIndex.normalizeVector(v);
         expect(normalized[0]).toBeCloseTo(0.6, 5);
         expect(normalized[1]).toBeCloseTo(0.8, 5);
-        
+
         // Check unit length
         const normSq = normalized.reduce((sum, x) => sum + x * x, 0);
         expect(normSq).toBeCloseTo(1, 5);
