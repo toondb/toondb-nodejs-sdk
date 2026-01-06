@@ -58,8 +58,8 @@ describe('ToonDB SDK Comprehensive Tests', () => {
       expect(VERSION).toMatch(/^\d+\.\d+\.\d+/);
     });
 
-    it('should be 0.3.2', () => {
-      expect(VERSION).toBe('0.3.2');
+    it('should be 0.3.3', () => {
+      expect(VERSION).toBe('0.3.3');
     });
   });
 
