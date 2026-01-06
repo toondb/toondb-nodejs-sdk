@@ -51,4 +51,60 @@ export {
   isAnalyticsDisabled,
 } from './analytics';
 
-export const VERSION = '0.3.2';
+// Policy & Safety Hooks
+export {
+  PolicyEngine,
+  PolicyAction,
+  PolicyTrigger,
+  PolicyContext,
+  PolicyHandler,
+  PolicyViolationError,
+  AuditEntry,
+  denyAll,
+  allowAll,
+  requireAgentId,
+  redactValue,
+} from './policy';
+
+// Tool Routing
+export {
+  ToolRouter,
+  AgentRegistry,
+  ToolDispatcher,
+  Tool,
+  Agent,
+  ToolCategory,
+  RoutingStrategy,
+  AgentStatus,
+  RouteResult,
+  RoutingContext,
+  ToolHandler,
+} from './routing';
+
+// Graph Overlay
+export {
+  GraphOverlay,
+  GraphNode,
+  GraphEdge,
+  Neighbor,
+  Subgraph,
+  TraversalOrder,
+  EdgeDirection,
+} from './graph';
+
+// Context Query
+export {
+  ContextQuery,
+  ContextResult,
+  ContextChunk,
+  TokenEstimator,
+  DeduplicationStrategy,
+  ContextFormat,
+  TruncationStrategy,
+  VectorQueryConfig,
+  KeywordQueryConfig,
+  estimateTokens,
+  splitByTokens,
+} from './context';
+
+export const VERSION = '0.3.3';

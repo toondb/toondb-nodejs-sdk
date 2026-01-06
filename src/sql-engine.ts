@@ -52,6 +52,14 @@ interface TableSchema {
 }
 
 /**
+ * Index metadata.
+ */
+interface IndexInfo {
+  column: string;
+  table: string;
+}
+
+/**
  * Parsed SQL operation result.
  */
 type ParsedSQL = {
@@ -72,8 +80,12 @@ export class SQLParser {
 
     if (upper.startsWith('CREATE TABLE')) {
       return SQLParser.parseCreateTable(sql);
+    } else if (upper.startsWith('CREATE INDEX')) {
+      return SQLParser.parseCreateIndex(sql);
     } else if (upper.startsWith('DROP TABLE')) {
       return SQLParser.parseDropTable(sql);
+    } else if (upper.startsWith('DROP INDEX')) {
+      return SQLParser.parseDropIndex(sql);
     } else if (upper.startsWith('INSERT')) {
       return SQLParser.parseInsert(sql);
     } else if (upper.startsWith('SELECT')) {
@@ -190,6 +202,37 @@ export class SQLParser {
       throw new Error(`Invalid DROP TABLE: ${sql}`);
     }
     return { operation: 'DROP_TABLE', data: { table: match[1] } };
+  }
+
+  private static parseCreateIndex(sql: string): ParsedSQL {
+    // CREATE INDEX idx_name ON table_name(column_name)
+    const match = sql.match(/CREATE\s+INDEX\s+(\w+)\s+ON\s+(\w+)\s*\(\s*(\w+)\s*\)/i);
+    if (!match) {
+      throw new Error(`Invalid CREATE INDEX syntax: ${sql}`);
+    }
+    return {
+      operation: 'CREATE_INDEX',
+      data: {
+        indexName: match[1],
+        table: match[2],
+        column: match[3],
+      },
+    };
+  }
+
+  private static parseDropIndex(sql: string): ParsedSQL {
+    // DROP INDEX idx_name ON table_name
+    const match = sql.match(/DROP\s+INDEX\s+(\w+)\s+ON\s+(\w+)/i);
+    if (!match) {
+      throw new Error(`Invalid DROP INDEX syntax: ${sql}`);
+    }
+    return {
+      operation: 'DROP_INDEX',
+      data: {
+        indexName: match[1],
+        table: match[2],
+      },
+    };
   }
 
   private static parseInsert(sql: string): ParsedSQL {
@@ -414,6 +457,7 @@ export class SQLExecutor {
   private readonly TABLE_PREFIX = '_sql/tables/';
   private readonly SCHEMA_SUFFIX = '/schema';
   private readonly ROWS_PREFIX = '/rows/';
+  private readonly INDEX_PREFIX = '/indexes/';
 
   constructor(db: DatabaseInterface) {
     this.db = db;
@@ -430,6 +474,10 @@ export class SQLExecutor {
         return this.createTable(data);
       case 'DROP_TABLE':
         return this.dropTable(data);
+      case 'CREATE_INDEX':
+        return this.createIndex(data);
+      case 'DROP_INDEX':
+        return this.dropIndex(data);
       case 'INSERT':
         return this.insert(data);
       case 'SELECT':
@@ -455,10 +503,104 @@ export class SQLExecutor {
     return this.TABLE_PREFIX + table + this.ROWS_PREFIX;
   }
 
+  private indexMetaKey(table: string, indexName: string): string {
+    return this.TABLE_PREFIX + table + this.INDEX_PREFIX + indexName + '/meta';
+  }
+
+  private indexPrefix(table: string, indexName: string): string {
+    return this.TABLE_PREFIX + table + this.INDEX_PREFIX + indexName + '/';
+  }
+
+  private indexKey(table: string, indexName: string, columnValue: string, rowId: string): string {
+    return this.TABLE_PREFIX + table + this.INDEX_PREFIX + indexName + '/' + columnValue + '/' + rowId;
+  }
+
+  private indexValuePrefix(table: string, indexName: string, columnValue: string): string {
+    return this.TABLE_PREFIX + table + this.INDEX_PREFIX + indexName + '/' + columnValue + '/';
+  }
+
   private async getSchema(table: string): Promise<TableSchema | null> {
     const data = await this.db.get(this.schemaKey(table));
     if (!data) return null;
     return JSON.parse(data.toString());
+  }
+
+  private async getIndexes(table: string): Promise<Record<string, string>> {
+    // Returns map of index_name -> column_name
+    const indexes: Record<string, string> = {};
+    const prefix = this.TABLE_PREFIX + table + this.INDEX_PREFIX;
+    const pairs = await this.db.scan(prefix);
+
+    for (const { key, value } of pairs) {
+      const keyStr = key.toString();
+      if (keyStr.endsWith('/meta')) {
+        const info: IndexInfo = JSON.parse(value.toString());
+        const parts = keyStr.split('/');
+        if (parts.length >= 5) {
+          const indexName = parts[parts.length - 2];
+          indexes[indexName] = info.column;
+        }
+      }
+    }
+
+    return indexes;
+  }
+
+  private async hasIndexForColumn(table: string, column: string): Promise<{ has: boolean; name: string }> {
+    const indexes = await this.getIndexes(table);
+    for (const [indexName, indexCol] of Object.entries(indexes)) {
+      if (indexCol === column) {
+        return { has: true, name: indexName };
+      }
+    }
+    return { has: false, name: '' };
+  }
+
+  private async lookupByIndex(table: string, indexName: string, value: string): Promise<string[]> {
+    const prefix = this.indexValuePrefix(table, indexName, value);
+    const pairs = await this.db.scan(prefix);
+    return pairs.map(p => p.value.toString());
+  }
+
+  private async updateIndex(
+    table: string,
+    indexName: string,
+    column: string,
+    oldRow: Record<string, any>,
+    newRow: Record<string, any>,
+    rowId: string
+  ): Promise<void> {
+    const oldVal = oldRow[column];
+    const newVal = newRow[column];
+
+    if (oldVal === newVal) {
+      return;
+    }
+
+    // Remove old index entry
+    if (oldVal != null) {
+      const oldKey = this.indexKey(table, indexName, String(oldVal), rowId);
+      await this.db.delete(oldKey);
+    }
+
+    // Add new index entry
+    if (newVal != null) {
+      const newKey = this.indexKey(table, indexName, String(newVal), rowId);
+      await this.db.put(newKey, rowId);
+    }
+  }
+
+  private findIndexedEqualityCondition(
+    table: string,
+    conditions: Array<[string, string, any]>,
+    indexes: Record<string, string>
+  ): [string, any] | null {
+    for (const [col, op, val] of conditions) {
+      if (op === '=' && Object.values(indexes).includes(col)) {
+        return [col, val];
+      }
+    }
+    return null;
   }
 
   private async createTable(data: Record<string, any>): Promise<SQLQueryResult> {
@@ -480,6 +622,17 @@ export class SQLExecutor {
   private async dropTable(data: Record<string, any>): Promise<SQLQueryResult> {
     const table = data.table;
 
+    // Delete all indexes first
+    const indexes = await this.getIndexes(table);
+    for (const indexName of Object.keys(indexes)) {
+      const idxPrefix = this.indexPrefix(table, indexName);
+      const idxPairs = await this.db.scan(idxPrefix);
+      for (const { key } of idxPairs) {
+        await this.db.delete(key);
+      }
+      await this.db.delete(this.indexMetaKey(table, indexName));
+    }
+
     // Delete all rows
     const prefix = this.rowPrefix(table);
     const rows = await this.db.scan(prefix);
@@ -494,6 +647,72 @@ export class SQLExecutor {
     await this.db.delete(this.schemaKey(table));
 
     return { rows: [], columns: [], rowsAffected: rowsDeleted };
+  }
+
+  private async createIndex(data: Record<string, any>): Promise<SQLQueryResult> {
+    const indexName = data.indexName;
+    const table = data.table;
+    const column = data.column;
+
+    const schema = await this.getSchema(table);
+    if (!schema) {
+      throw new Error(`Table '${table}' does not exist`);
+    }
+
+    // Check column exists
+    if (!schema.columns.some(c => c.name === column)) {
+      throw new Error(`Column '${column}' does not exist in table '${table}'`);
+    }
+
+    // Check index doesn't already exist
+    const metaKey = this.indexMetaKey(table, indexName);
+    const existing = await this.db.get(metaKey);
+    if (existing) {
+      throw new Error(`Index '${indexName}' already exists on table '${table}'`);
+    }
+
+    // Store index metadata
+    const meta: IndexInfo = { column, table };
+    await this.db.put(metaKey, JSON.stringify(meta));
+
+    // Build index from existing rows
+    const prefix = this.rowPrefix(table);
+    const pairs = await this.db.scan(prefix);
+    let indexedCount = 0;
+
+    for (const { value } of pairs) {
+      const row = JSON.parse(value.toString());
+      const rowId = row['_id'];
+      const colValue = row[column];
+
+      if (colValue != null) {
+        const idxKey = this.indexKey(table, indexName, String(colValue), rowId);
+        await this.db.put(idxKey, rowId);
+        indexedCount++;
+      }
+    }
+
+    return { rows: [], columns: [], rowsAffected: indexedCount };
+  }
+
+  private async dropIndex(data: Record<string, any>): Promise<SQLQueryResult> {
+    const indexName = data.indexName;
+    const table = data.table;
+
+    // Delete all index entries
+    const idxPrefix = this.indexPrefix(table, indexName);
+    const pairs = await this.db.scan(idxPrefix);
+    let deleted = 0;
+
+    for (const { key } of pairs) {
+      await this.db.delete(key);
+      deleted++;
+    }
+
+    // Delete index metadata
+    await this.db.delete(this.indexMetaKey(table, indexName));
+
+    return { rows: [], columns: [], rowsAffected: deleted };
   }
 
   private async insert(data: Record<string, any>): Promise<SQLQueryResult> {
@@ -533,6 +752,15 @@ export class SQLExecutor {
     row['_id'] = rowId;
 
     await this.db.put(this.rowKey(table, rowId), JSON.stringify(row));
+
+    // Maintain indexes
+    const indexes = await this.getIndexes(table);
+    for (const [indexName, indexCol] of Object.entries(indexes)) {
+      if (row[indexCol] != null) {
+        const idxKey = this.indexKey(table, indexName, String(row[indexCol]), rowId);
+        await this.db.put(idxKey, rowId);
+      }
+    }
 
     return { rows: [], columns: [], rowsAffected: 1 };
   }
@@ -662,23 +890,77 @@ export class SQLExecutor {
       throw new Error(`Table '${table}' does not exist`);
     }
 
-    // Scan all rows
-    const prefix = this.rowPrefix(table);
-    const scanResults = await this.db.scan(prefix);
+    const indexes = await this.getIndexes(table);
     let rowsAffected = 0;
 
-    for (const { key, value } of scanResults) {
-      const row = JSON.parse(value.toString());
+    // Try index-accelerated path
+    const indexedCond = this.findIndexedEqualityCondition(table, conditions, indexes);
 
-      // Apply WHERE conditions
-      if (this.matchesConditions(row, conditions)) {
-        // Apply updates
-        for (const [col, val] of Object.entries(updates)) {
-          row[col] = val;
+    if (indexedCond) {
+      // Index-accelerated UPDATE
+      const [col, val] = indexedCond;
+      const indexResult = await this.hasIndexForColumn(table, col);
+      
+      if (indexResult.has) {
+        const rowIds = await this.lookupByIndex(table, indexResult.name, String(val));
+        
+        for (const rowId of rowIds) {
+          const key = this.rowKey(table, rowId);
+          const value = await this.db.get(key);
+          if (!value) continue;
+
+          const oldRow = JSON.parse(value.toString());
+
+          // Apply all WHERE conditions (not just the indexed one)
+          if (!this.matchesConditions(oldRow, conditions)) {
+            continue;
+          }
+
+          // Apply updates
+          const newRow = { ...oldRow };
+          for (const [ucol, uval] of Object.entries(updates)) {
+            newRow[ucol] = uval;
+          }
+
+          // Update indexes for changed columns
+          for (const [idxName, idxCol] of Object.entries(indexes)) {
+            if (idxCol in updates) {
+              await this.updateIndex(table, idxName, idxCol, oldRow, newRow, rowId);
+            }
+          }
+
+          await this.db.put(key, JSON.stringify(newRow));
+          rowsAffected++;
         }
+      }
+    } else {
+      // Fallback: full table scan
+      const prefix = this.rowPrefix(table);
+      const scanResults = await this.db.scan(prefix);
 
-        await this.db.put(key, JSON.stringify(row));
-        rowsAffected++;
+      for (const { key, value } of scanResults) {
+        const oldRow = JSON.parse(value.toString());
+
+        // Apply WHERE conditions
+        if (this.matchesConditions(oldRow, conditions)) {
+          // Apply updates
+          const newRow = { ...oldRow };
+          for (const [col, val] of Object.entries(updates)) {
+            newRow[col] = val;
+          }
+
+          const rowId = oldRow['_id'];
+
+          // Update indexes for changed columns
+          for (const [idxName, idxCol] of Object.entries(indexes)) {
+            if (idxCol in updates) {
+              await this.updateIndex(table, idxName, idxCol, oldRow, newRow, rowId);
+            }
+          }
+
+          await this.db.put(key, JSON.stringify(newRow));
+          rowsAffected++;
+        }
       }
     }
 
@@ -694,25 +976,85 @@ export class SQLExecutor {
       throw new Error(`Table '${table}' does not exist`);
     }
 
-    // Scan all rows and collect keys to delete
-    const prefix = this.rowPrefix(table);
-    const scanResults = await this.db.scan(prefix);
-    const keysToDelete: Buffer[] = [];
+    const indexes = await this.getIndexes(table);
+    let rowsAffected = 0;
 
-    for (const { key, value } of scanResults) {
-      const row = JSON.parse(value.toString());
+    // Try index-accelerated path
+    const indexedCond = this.findIndexedEqualityCondition(table, conditions, indexes);
 
-      // Apply WHERE conditions
-      if (this.matchesConditions(row, conditions)) {
-        keysToDelete.push(key);
+    if (indexedCond) {
+      // Index-accelerated DELETE
+      const [col, val] = indexedCond;
+      const indexResult = await this.hasIndexForColumn(table, col);
+      
+      if (indexResult.has) {
+        const rowIds = await this.lookupByIndex(table, indexResult.name, String(val));
+        const keysToDelete: Buffer[] = [];
+        const rowsToDelete: Array<{ row: Record<string, any>; rowId: string }> = [];
+
+        for (const rowId of rowIds) {
+          const key = this.rowKey(table, rowId);
+          const value = await this.db.get(key);
+          if (!value) continue;
+
+          const row = JSON.parse(value.toString());
+
+          // Apply all WHERE conditions (not just the indexed one)
+          if (this.matchesConditions(row, conditions)) {
+            keysToDelete.push(Buffer.from(key));
+            rowsToDelete.push({ row, rowId });
+          }
+        }
+
+        // Delete rows and update indexes
+        for (let i = 0; i < keysToDelete.length; i++) {
+          const key = keysToDelete[i];
+          const { row, rowId } = rowsToDelete[i];
+
+          // Remove from all indexes
+          for (const [idxName, idxCol] of Object.entries(indexes)) {
+            const emptyRow: Record<string, any> = {};
+            await this.updateIndex(table, idxName, idxCol, row, emptyRow, rowId);
+          }
+
+          await this.db.delete(key);
+          rowsAffected++;
+        }
+      }
+    } else {
+      // Fallback: full table scan
+      const prefix = this.rowPrefix(table);
+      const scanResults = await this.db.scan(prefix);
+      const keysToDelete: Buffer[] = [];
+      const rowsToDelete: Array<{ row: Record<string, any>; rowId: string }> = [];
+
+      for (const { key, value } of scanResults) {
+        const row = JSON.parse(value.toString());
+
+        // Apply WHERE conditions
+        if (this.matchesConditions(row, conditions)) {
+          const rowId = row['_id'];
+          keysToDelete.push(key);
+          rowsToDelete.push({ row, rowId });
+        }
+      }
+
+      // Delete collected rows and update indexes
+      for (let i = 0; i < keysToDelete.length; i++) {
+        const key = keysToDelete[i];
+        const { row, rowId } = rowsToDelete[i];
+
+        // Remove from all indexes
+        for (const [idxName, idxCol] of Object.entries(indexes)) {
+          const emptyRow: Record<string, any> = {};
+          await this.updateIndex(table, idxName, idxCol, row, emptyRow, rowId);
+        }
+
+        await this.db.delete(key);
+        rowsAffected++;
       }
     }
 
-    // Delete collected keys
-    for (const key of keysToDelete) {
-      await this.db.delete(key);
-    }
-
-    return { rows: [], columns: [], rowsAffected: keysToDelete.length };
+    return { rows: [], columns: [], rowsAffected };
   }
 }
