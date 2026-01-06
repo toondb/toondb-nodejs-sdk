@@ -295,7 +295,7 @@ export class GraphOverlay {
    */
   async getEdges(fromId: string, edgeType?: string): Promise<GraphEdge[]> {
     const prefix = this.edgePrefix(fromId, edgeType);
-    const results = await this.db.scanPrefix(prefix);
+    const results = await this.db.scan(prefix);
 
     const edges: GraphEdge[] = [];
     for (const result of results) {
@@ -322,7 +322,7 @@ export class GraphOverlay {
     if (edgeType) {
       // Query specific edge type
       const prefix = this.reverseIndexPrefix(edgeType, toId);
-      const results = await this.db.scanPrefix(prefix);
+      const results = await this.db.scan(prefix);
 
       for (const result of results) {
         const fromId = result.value.toString();
@@ -334,10 +334,10 @@ export class GraphOverlay {
     } else {
       // Query all edge types - scan all index entries
       const indexPrefix = `${this.prefix}/index/`;
-      const results = await this.db.scanPrefix(indexPrefix);
+      const results = await this.db.scan(indexPrefix);
 
       for (const result of results) {
-        const parts = result.key.split('/');
+        const parts = result.key.toString().split('/');
         if (parts.length >= 6 && parts[4] === toId) {
           const fromId = result.value.toString();
           const et = parts[3];
@@ -588,7 +588,7 @@ export class GraphOverlay {
    */
   async getNodesByType(nodeType: string, limit: number = 100): Promise<GraphNode[]> {
     const prefix = `${this.prefix}/nodes/`;
-    const results = await this.db.scanPrefix(prefix);
+    const results = await this.db.scan(prefix);
 
     const nodes: GraphNode[] = [];
     for (const result of results) {

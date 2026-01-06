@@ -170,7 +170,7 @@ export class AgentRegistry {
 
   private async loadAgents(): Promise<void> {
     try {
-      const results = await this.db.scan(Buffer.from(AGENT_PREFIX));
+      const results = await this.db.scan(AGENT_PREFIX);
       for (const { key, value } of results) {
         try {
           const data = JSON.parse(value.toString());
@@ -337,7 +337,7 @@ export class ToolRouter {
 
   private async loadTools(): Promise<void> {
     try {
-      const results = await this.db.scan(Buffer.from(TOOL_PREFIX));
+      const results = await this.db.scan(TOOL_PREFIX);
       for (const { key, value } of results) {
         try {
           const data = JSON.parse(value.toString());

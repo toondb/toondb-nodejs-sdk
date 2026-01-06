@@ -494,9 +494,9 @@ export class ContextQuery {
     // This would call the actual keyword search API
     // For now, use prefix scan as approximation
     try {
-      const results = await this.db.scanPrefix(this.collectionName + '/' + kq.query);
-      return results.slice(0, kq.topK).map((r, i) => ({
-        id: r.key,
+      const results = await this.db.scan(this.collectionName + '/' + kq.query);
+      return results.slice(0, kq.topK).map((r: { key: Buffer; value: Buffer }, i: number) => ({
+        id: r.key.toString(),
         text: r.value?.toString() || '',
         score: 1.0 / (i + 1),
         tokens: 0,

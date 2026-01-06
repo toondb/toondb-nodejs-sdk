@@ -33,7 +33,68 @@ bun add @sushanth/toondb
 - Node.js 18+ or Bun 1.0+
 - ToonDB server binaries (automatically installed)
 
-## What's New in Latest Release
+## What's New in v0.3.3
+
+### 🕸️ Graph Overlay for Agent Memory
+Build lightweight graph structures on top of ToonDB's KV storage for agent memory:
+
+```typescript
+import { Database, GraphOverlay } from '@sushanth/toondb';
+
+const db = await Database.open('./agent_db');
+const graph = new GraphOverlay(db, 'agent_memory');
+
+// Add nodes (entities, concepts, events)
+await graph.addNode({
+  id: 'user_alice',
+  type: 'person',
+  properties: { name: 'Alice', role: 'developer' },
+});
+await graph.addNode({
+  id: 'conv_123',
+  type: 'conversation',
+  properties: { topic: 'ToonDB features' },
+});
+await graph.addNode({
+  id: 'action_456',
+  type: 'action',
+  properties: { type: 'code_commit', status: 'success' },
+});
+
+// Add edges (relationships, causality, references)
+await graph.addEdge({
+  fromId: 'user_alice',
+  edgeType: 'started',
+  toId: 'conv_123',
+  properties: { timestamp: '2026-01-05' },
+});
+await graph.addEdge({
+  fromId: 'conv_123',
+  edgeType: 'triggered',
+  toId: 'action_456',
+  properties: { reason: 'user request' },
+});
+
+// Retrieve nodes and edges
+const node = await graph.getNode('user_alice');
+const edges = await graph.getOutgoingEdges('user_alice', 'started');
+
+// Graph traversal
+const visited = await graph.bfs('user_alice', 3);  // BFS from Alice
+const path = await graph.shortestPath('user_alice', 'action_456');  // Find connection
+
+// Get neighbors
+const neighbors = await graph.getNeighbors('conv_123', TraversalDirection.BOTH);
+
+// Extract subgraph
+const subgraph = await graph.getSubgraph(['user_alice', 'conv_123', 'action_456']);
+```
+
+**Use Cases:**
+- Agent conversation history with causal chains
+- Entity relationship tracking across sessions
+- Action dependency graphs for planning
+- Knowledge graph construction
 
 ### 🛡️ Policy & Safety Hooks
 Enforce safety policies on agent operations with pre/post triggers:
