@@ -585,32 +585,6 @@ const results: SearchResult[] = await client.search('index', query, 10);
 
 ---
 
-## Server Requirements
-
-### Starting the Server
-
-```bash
-# Development mode
-cd toondb
-cargo run -p toondb-grpc
-
-# Production mode (optimized)
-cargo build --release -p toondb-grpc
-./target/release/toondb-grpc --host 0.0.0.0 --port 50051
-```
-
-### Server Configuration
-
-Server runs all business logic including:
-- ✅ HNSW vector indexing (15x faster than ChromaDB)
-- ✅ SQL query parsing and execution
-- ✅ Graph traversal algorithms
-- ✅ Policy evaluation
-- ✅ Multi-tenant namespace isolation
-- ✅ Collection management
-
----
-
 ## Performance
 
 **Network Overhead:**
@@ -628,26 +602,7 @@ Server runs all business logic including:
 
 ---
 
-## Comparison with Old Architecture
-
-| Feature | Old (Fat Client) | New (Thin Client) |
-|---------|------------------|-------------------|
-| SDK Size | 5,038 LOC | 1,282 LOC (-75%) |
-| Business Logic | In SDK (TypeScript) | In Server (Rust) |
-| Bug Fixes | Per language | Once in server |
-| Semantic Drift | High risk | Zero risk |
-| Performance | FFI overhead | Network call |
-| Maintenance | 3x effort | 1x effort |
-
----
-
-## Migration Guide
-
-### From Fat Client (v0.3.3 or earlier)
-
-**Old Code:**
-```typescript
-import { Database } from '@sushanth/toondb';
+## Examples
 
 const db = await Database.open('./data');
 await db.put(Buffer.from('key'), Buffer.from('value'));
@@ -729,11 +684,22 @@ A: Not directly. Use a backend service that connects to ToonDB and exposes a RES
 
 ---
 
-## Support
+## Getting Help
 
-- **GitHub**: https://github.com/sushanthpy/toondb
-- **Issues**: https://github.com/sushanthpy/toondb/issues
-- **Docs**: https://toondb.dev
+- **Documentation**: https://toondb.dev
+- **GitHub Issues**: https://github.com/sushanthpy/toondb/issues
+- **Examples**: See source code for examples
+
+---
+
+## Contributing
+
+Interested in contributing? See [CONTRIBUTING.md](CONTRIBUTING.md) for:
+- Development environment setup
+- Building from source
+- Running tests
+- Code style guidelines
+- Pull request process
 
 ---
 
