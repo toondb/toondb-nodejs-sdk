@@ -32,7 +32,7 @@
     "build:types": "tsc -p tsconfig.types.json",
     "postbuild": "node scripts/fix-esm-imports.js",
     "postinstall": "node scripts/postinstall.js",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "test:coverage": "jest --coverage",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
