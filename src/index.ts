@@ -1,35 +1,71 @@
 /**
- * ToonDB Node.js/TypeScript SDK
- *
- * A JavaScript/TypeScript client for ToonDB - the database optimized for LLM context retrieval.
- *
- * Provides two modes of access:
- * - Embedded: Direct database access via FFI (single process)
- * - IPC: Client-server access via Unix sockets (multi-process)
- * - Vector: HNSW vector search
- *
- * @packageDocumentation
+ * ToonDB Node.js SDK v0.3.4
+ * 
+ * Dual-mode architecture: Embedded (FFI) + Server (gRPC/IPC)
+ * 
+ * Architecture: Flexible Deployment
+ * ==================================
+ * This SDK supports BOTH modes:
+ * 
+ * 1. Embedded Mode (FFI) - For single-process apps:
+ *    - Direct FFI bindings to Rust libraries
+ *    - No server required - just npm install and run
+ *    - Best for: Local development, simple apps
+ * 
+ * 2. Server Mode (gRPC/IPC) - For distributed systems:
+ *    - Thin client connecting to toondb-grpc server
+ *    - Best for: Production, multi-language, scalability
+ * 
+ * @example Embedded Mode
+ * ```typescript
+ * import { Database } from '@sushanth/toondb';
+ * 
+ * // Direct FFI - no server needed
+ * const db = await Database.open('./mydb');
+ * await db.put(Buffer.from('key'), Buffer.from('value'));
+ * await db.close();
+ * ```
+ * 
+ * @example Server Mode
+ * ```typescript
+ * import { ToonDBClient } from '@sushanth/toondb';
+ * 
+ * // Connect to server
+ * const client = new ToonDBClient({ address: 'localhost:50051' });
+ * await client.putKv('key', Buffer.from('value'));
+ * ```
  */
 
-// Copyright 2025 Sushanth (https://github.com/sushanthpy)
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// Version
+export const VERSION = '0.3.4';
 
-export { Database, Transaction, DatabaseConfig, SQLQueryResult } from './database';
-export { IpcClient, IpcClientConfig, OpCode } from './ipc-client';
-export { Query, QueryResult } from './query';
-export { VectorIndex, VectorSearchResult, VectorIndexConfig } from './vector';
-export { SQLParser, SQLExecutor } from './sql-engine';
+// Embedded mode (FFI)
+export { Database } from './database';
+
+// Server mode (gRPC/IPC)
+export { ToonDBClient } from './grpc-client';
+export type { 
+  SearchResult,
+  Document,
+  GraphNode,
+  GraphEdge,
+} from './grpc-client';
+
+export { IpcClient } from './ipc-client';
+
+// Format utilities
+export {
+  WireFormat,
+  ContextFormat,
+  CanonicalFormat,
+  FormatCapabilities,
+  FormatConversionError,
+} from './format';
+
+// Type definitions
+export { Query } from './query';
+export type { QueryResult } from './query';
+
 export {
   ToonDBError,
   ConnectionError,
@@ -37,74 +73,6 @@ export {
   ProtocolError,
   DatabaseError,
 } from './errors';
-export {
-  startEmbeddedServer,
-  stopEmbeddedServer,
-  stopAllEmbeddedServers,
-  isServerRunning,
-} from './server-manager';
-export {
-  capture as captureAnalytics,
-  captureError,
-  shutdown as shutdownAnalytics,
-  trackDatabaseOpen,
-  isAnalyticsDisabled,
-} from './analytics';
 
-// Policy & Safety Hooks
-export {
-  PolicyEngine,
-  PolicyAction,
-  PolicyTrigger,
-  PolicyContext,
-  PolicyHandler,
-  PolicyViolationError,
-  AuditEntry,
-  denyAll,
-  allowAll,
-  requireAgentId,
-  redactValue,
-} from './policy';
-
-// Tool Routing
-export {
-  ToolRouter,
-  AgentRegistry,
-  ToolDispatcher,
-  Tool,
-  Agent,
-  ToolCategory,
-  RoutingStrategy,
-  AgentStatus,
-  RouteResult,
-  RoutingContext,
-  ToolHandler,
-} from './routing';
-
-// Graph Overlay
-export {
-  GraphOverlay,
-  GraphNode,
-  GraphEdge,
-  Neighbor,
-  Subgraph,
-  TraversalOrder,
-  EdgeDirection,
-} from './graph';
-
-// Context Query
-export {
-  ContextQuery,
-  ContextResult,
-  ContextChunk,
-  TokenEstimator,
-  DeduplicationStrategy,
-  ContextFormat,
-  TruncationStrategy,
-  VectorQueryConfig,
-  KeywordQueryConfig,
-  estimateTokens,
-  splitByTokens,
-} from './context';
-
-export const VERSION = '0.3.3';
+// Convenience alias
+export { ToonDBClient as GrpcClient } from './grpc-client';
