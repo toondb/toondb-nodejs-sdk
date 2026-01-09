@@ -1,7 +1,35 @@
-# ToonDB Node.js SDK v0.3.4
+# ToonDB Node.js SDK v0.3.5
 
 **Ultra-thin client for ToonDB server.**  
 All business logic runs on the server.
+
+## What's New in 0.3.5
+
+### 🕸️ Graph Overlay Operations
+New graph operations for building agent memory and relationship networks:
+
+```typescript
+import { ToonDBClient } from '@sushanth/toondb';
+
+const client = new ToonDBClient({ address: 'localhost:50051' });
+
+// Add nodes
+await client.addNode('default', 'alice', 'person', { role: 'engineer' });
+await client.addNode('default', 'project_x', 'project', { status: 'active' });
+
+// Add relationships
+await client.addEdge('default', 'alice', 'works_on', 'project_x');
+await client.addEdge('default', 'alice', 'knows', 'bob', { since: '2020' });
+
+// Traverse graph (BFS or DFS)
+const { nodes, edges } = await client.traverse('default', 'alice', 2, 'bfs');
+console.log(`Found ${nodes.length} nodes and ${edges.length} edges`);
+```
+
+### 🏗️ Compatible with Tokio-Optional Backend
+- Works with sync-first Rust backend (v0.3.5)
+- No changes needed to client code
+- Benefits from smaller server binaries
 
 ## Architecture: Thick Server / Thin Client
 
