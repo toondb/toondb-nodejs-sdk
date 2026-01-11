@@ -1,7 +1,7 @@
-# ToonDB Node.js SDK v0.3.5
+# ToonDB Node.js SDK v0.3.6
 
-**Ultra-thin client for ToonDB server.**  
-All business logic runs on the server.
+**Dual-mode architecture: Embedded (FFI) + Server (gRPC)**  
+Choose the deployment mode that fits your needs.
 
 ## What's New in 0.3.5
 

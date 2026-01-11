@@ -37,14 +37,18 @@
  */
 
 // Version
-export const VERSION = '0.3.4';
+export const VERSION = '0.3.6';
 
-// Embedded mode (FFI)
-export { Database } from './database';
+// Embedded mode (FFI) - NEW
+export { EmbeddedDatabase, EmbeddedDatabaseConfig } from './embedded';
+export { EmbeddedTransaction } from './embedded';
+
+// Embedded mode (FFI) - Convenience alias
+export { EmbeddedDatabase as Database } from './embedded';
 
 // Server mode (gRPC/IPC)
 export { ToonDBClient } from './grpc-client';
-export type { 
+export type {
   SearchResult,
   Document,
   GraphNode,
