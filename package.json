@@ -26,8 +26,7 @@
     "toondb-grpc-server": "./bin/toondb-grpc-server.js"
   },
   "scripts": {
-    "build": "npm run build:native && npm run build:cjs && npm run build:esm && npm run build:types && npm run postbuild",
-    "build:native": "cd native && cargo build --release && cd ..",
+    "build": "npm run build:cjs && npm run build:esm && npm run build:types && npm run postbuild",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:types": "tsc -p tsconfig.types.json",
