@@ -82,6 +82,7 @@
   "dependencies": {
     "@grpc/grpc-js": "^1.12.4",
     "@grpc/proto-loader": "^0.7.15",
+    "koffi": "^2.15.0",
     "uuid": "^9.0.0"
   },
   "optionalDependencies": {
