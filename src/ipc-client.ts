@@ -1,7 +1,7 @@
 /**
- * ToonDB IPC Client
+ * SochDB IPC Client
  *
- * Connects to a ToonDB IPC server via Unix domain socket.
+ * Connects to a SochDB IPC server via Unix domain socket.
  *
  * @packageDocumentation
  */
@@ -22,7 +22,7 @@ import { Query } from './query';
  * Wire protocol opcodes.
  */
 export const OpCode = {
-  // Client → Server (must match toondb-storage/src/ipc_server.rs)
+  // Client → Server (must match sochdb-storage/src/ipc_server.rs)
   Put: 0x01,
   Get: 0x02,
   Delete: 0x03,
@@ -89,15 +89,15 @@ export interface IpcClientConfig {
 }
 
 /**
- * IPC Client for ToonDB.
+ * IPC Client for SochDB.
  *
- * Connects to a ToonDB server via Unix domain socket.
+ * Connects to a SochDB server via Unix domain socket.
  *
  * @example
  * ```typescript
- * import { IpcClient } from '@sushanth/toondb';
+ * import { IpcClient } from '@sushanth/sochdb';
  *
- * const client = await IpcClient.connect('/tmp/toondb.sock');
+ * const client = await IpcClient.connect('/tmp/sochdb.sock');
  *
  * await client.put(Buffer.from('key'), Buffer.from('value'));
  * const value = await client.get(Buffer.from('key'));
@@ -124,14 +124,14 @@ export class IpcClient {
   }
 
   /**
-   * Connect to a ToonDB IPC server.
+   * Connect to a SochDB IPC server.
    *
    * @param socketPath - Path to the Unix domain socket
    * @returns A connected IpcClient instance
    *
    * @example
    * ```typescript
-   * const client = await IpcClient.connect('/tmp/toondb.sock');
+   * const client = await IpcClient.connect('/tmp/sochdb.sock');
    * ```
    */
   static async connect(socketPath: string): Promise<IpcClient> {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * ToonDB Bulk CLI Wrapper
+ * SochDB Bulk CLI Wrapper
  * Automatically locates and runs the platform-specific binary.
  */
 
@@ -29,7 +29,7 @@ function getPlatformBinary() {
     }
 
     // Look for bundled binary
-    const binName = `toondb-bulk${ext}`;
+    const binName = `sochdb-bulk${ext}`;
     const bundledPath = path.resolve(__dirname, '..', '_bin', target, binName);
 
     if (fs.existsSync(bundledPath)) {
@@ -37,17 +37,17 @@ function getPlatformBinary() {
     }
 
     // Fallback: Check environment variable
-    if (process.env.TOONDB_BULK_PATH) {
-        return process.env.TOONDB_BULK_PATH;
+    if (process.env.SOCHDB_BULK_PATH) {
+        return process.env.SOCHDB_BULK_PATH;
     }
 
     throw new Error(`
-toondb-bulk binary not found!
+sochdb-bulk binary not found!
 Searched at: ${bundledPath}
 
 To fix:
-1. Reinstall the package: npm install --force @sushanth/toondb
-2. Or set TOONDB_BULK_PATH environment variable
+1. Reinstall the package: npm install --force @sushanth/sochdb
+2. Or set SOCHDB_BULK_PATH environment variable
     `);
 }
 
@@ -63,7 +63,7 @@ try {
     });
 
     child.on('error', (err) => {
-        console.error(`Failed to start toondb-bulk: ${err.message}`);
+        console.error(`Failed to start sochdb-bulk: ${err.message}`);
         process.exit(1);
     });
 
@@ -75,6 +75,6 @@ try {
     });
 
 } catch (err) {
-    console.error(`[toondb-js] Error: ${err.message}`);
+    console.error(`[sochdb-js] Error: ${err.message}`);
     process.exit(1);
 }

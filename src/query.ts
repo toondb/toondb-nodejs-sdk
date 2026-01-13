@@ -1,7 +1,7 @@
 /**
- * ToonDB Query Builder
+ * SochDB Query Builder
  *
- * Fluent query interface for ToonDB.
+ * Fluent query interface for SochDB.
  *
  * @packageDocumentation
  */
@@ -24,7 +24,7 @@ export interface QueryResult {
 }
 
 /**
- * Fluent query builder for ToonDB.
+ * Fluent query builder for SochDB.
  *
  * @example
  * ```typescript

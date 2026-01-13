@@ -1,10 +1,10 @@
 /**
- * ToonDB Analytics - Anonymous usage tracking with PostHog
+ * SochDB Analytics - Anonymous usage tracking with PostHog
  *
  * This module provides anonymous, privacy-respecting analytics to help
- * improve ToonDB. All tracking can be disabled by setting:
+ * improve SochDB. All tracking can be disabled by setting:
  *
- *     TOONDB_DISABLE_ANALYTICS=true
+ *     SOCHDB_DISABLE_ANALYTICS=true
  *
  * No personally identifiable information (PII) is collected. Only aggregate
  * usage patterns are tracked to understand:
@@ -30,13 +30,13 @@ let posthogInitialized = false;
 /**
  * Check if analytics is disabled via environment variable.
  * 
- * Analytics is disabled when TOONDB_DISABLE_ANALYTICS is set to 'true', '1', 'yes', or 'on'.
+ * Analytics is disabled when SOCHDB_DISABLE_ANALYTICS is set to 'true', '1', 'yes', or 'on'.
  * 
  * @returns true if analytics is disabled
  */
 export function isAnalyticsDisabled(): boolean {
   const disableVar = (
-    process.env.TOONDB_DISABLE_ANALYTICS || ""
+    process.env.SOCHDB_DISABLE_ANALYTICS || ""
   ).toLowerCase();
   return ["true", "1", "yes", "on"].includes(disableVar);
 }
@@ -114,7 +114,7 @@ export interface EventProperties {
  * Capture an analytics event.
  *
  * This function is a no-op if:
- * - TOONDB_DISABLE_ANALYTICS=true
+ * - SOCHDB_DISABLE_ANALYTICS=true
  * - posthog-node package is not installed
  * - Any error occurs (fails silently)
  *

@@ -1,7 +1,7 @@
 /**
- * ToonDB Embedded Database
+ * SochDB Embedded Database
  *
- * Direct database access via IPC to the ToonDB server.
+ * Direct database access via IPC to the SochDB server.
  * This provides the same API as the Python SDK's Database class.
  *
  * @packageDocumentation
@@ -171,13 +171,13 @@ export class Transaction {
 }
 
 /**
- * ToonDB Database client.
+ * SochDB Database client.
  *
- * Provides access to ToonDB with full transaction support.
+ * Provides access to SochDB with full transaction support.
  *
  * @example
  * ```typescript
- * import { Database } from '@sushanth/toondb';
+ * import { Database } from '@sushanth/sochdb';
  *
  * // Open a database
  * const db = await Database.open('./my_database');
@@ -263,7 +263,7 @@ export class Database {
       db._embeddedServerStarted = true;
     } else {
       // Connect to existing server socket
-      socketPath = path.join(config.path, 'toondb.sock');
+      socketPath = path.join(config.path, 'sochdb.sock');
     }
 
     db._client = await IpcClient.connect(socketPath);
@@ -473,7 +473,7 @@ export class Database {
   /**
    * Execute a SQL query.
    * 
-   * ToonDB supports a subset of SQL for relational data stored on top of 
+   * SochDB supports a subset of SQL for relational data stored on top of 
    * the key-value engine. Tables and rows are stored as:
    * - Schema: _sql/tables/{table_name}/schema
    * - Rows: _sql/tables/{table_name}/rows/{row_id}

@@ -1,7 +1,7 @@
 /**
  * Embedded Database - FFI Mode
  * 
- * Direct FFI access to ToonDB native library.
+ * Direct FFI access to SochDB native library.
  * No server required - similar to Python SDK's Database class.
  */
 
@@ -23,7 +23,7 @@ export interface EmbeddedDatabaseConfig {
  * 
  * @example
  * ```typescript
- * import { EmbeddedDatabase } from '@sushanth/toondb';
+ * import { EmbeddedDatabase } from '@sushanth/sochdb';
  * 
  * const db = await EmbeddedDatabase.open('./mydb');
  * await db.put(Buffer.from('key'), Buffer.from('value'));
@@ -66,9 +66,9 @@ export class EmbeddedDatabase {
                 default_index_policy: 1, // Default to Balanced
                 default_index_policy_set: false
             };
-            handle = bindings.toondb_open_with_config(path, cConfig);
+            handle = bindings.sochdb_open_with_config(path, cConfig);
         } else {
-            handle = bindings.toondb_open(path);
+            handle = bindings.sochdb_open(path);
         }
 
         if (!handle) {
@@ -184,7 +184,7 @@ export class EmbeddedDatabase {
     transaction(): EmbeddedTransaction {
         this.ensureOpen();
 
-        const txnHandle = this.bindings.toondb_begin_txn(this.handle);
+        const txnHandle = this.bindings.sochdb_begin_txn(this.handle);
         return new EmbeddedTransaction(this, this.handle, txnHandle);
     }
 
@@ -208,7 +208,7 @@ export class EmbeddedDatabase {
      */
     async checkpoint(): Promise<bigint> {
         this.ensureOpen();
-        const lsn = this.bindings.toondb_checkpoint(this.handle);
+        const lsn = this.bindings.sochdb_checkpoint(this.handle);
         return BigInt(lsn);
     }
 
@@ -225,7 +225,7 @@ export class EmbeddedDatabase {
         this.ensureOpen();
 
         // Returns struct by value (automatically decoded)
-        const stats = this.bindings.toondb_stats(this.handle);
+        const stats = this.bindings.sochdb_stats(this.handle);
 
         const result = {
             memtableSizeBytes: BigInt(stats.memtable_size_bytes),
@@ -243,7 +243,7 @@ export class EmbeddedDatabase {
      */
     close(): void {
         if (!this.closed) {
-            this.bindings.toondb_close(this.handle);
+            this.bindings.sochdb_close(this.handle);
             this.closed = true;
         }
     }

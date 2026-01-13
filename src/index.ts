@@ -1,5 +1,5 @@
 /**
- * ToonDB Node.js SDK v0.3.4
+ * SochDB Node.js SDK v0.4.0
  * 
  * Dual-mode architecture: Embedded (FFI) + Server (gRPC/IPC)
  * 
@@ -13,12 +13,12 @@
  *    - Best for: Local development, simple apps
  * 
  * 2. Server Mode (gRPC/IPC) - For distributed systems:
- *    - Thin client connecting to toondb-grpc server
+ *    - Thin client connecting to sochdb-grpc server
  *    - Best for: Production, multi-language, scalability
  * 
  * @example Embedded Mode
  * ```typescript
- * import { Database } from '@sushanth/toondb';
+ * import { Database } from '@sochdb/sochdb';
  * 
  * // Direct FFI - no server needed
  * const db = await Database.open('./mydb');
@@ -28,16 +28,16 @@
  * 
  * @example Server Mode
  * ```typescript
- * import { ToonDBClient } from '@sushanth/toondb';
+ * import { SochDBClient } from '@sochdb/sochdb';
  * 
  * // Connect to server
- * const client = new ToonDBClient({ address: 'localhost:50051' });
+ * const client = new SochDBClient({ address: 'localhost:50051' });
  * await client.putKv('key', Buffer.from('value'));
  * ```
  */
 
 // Version
-export const VERSION = '0.3.6';
+export const VERSION = '0.4.0';
 
 // Embedded mode (FFI) - NEW
 export { EmbeddedDatabase, EmbeddedDatabaseConfig } from './embedded';
@@ -47,7 +47,7 @@ export { EmbeddedTransaction } from './embedded';
 export { EmbeddedDatabase as Database } from './embedded';
 
 // Server mode (gRPC/IPC)
-export { ToonDBClient } from './grpc-client';
+export { SochDBClient } from './grpc-client';
 export type {
   SearchResult,
   Document,
@@ -71,7 +71,7 @@ export { Query } from './query';
 export type { QueryResult } from './query';
 
 export {
-  ToonDBError,
+  SochDBError,
   ConnectionError,
   TransactionError,
   ProtocolError,
@@ -79,4 +79,4 @@ export {
 } from './errors';
 
 // Convenience alias
-export { ToonDBClient as GrpcClient } from './grpc-client';
+export { SochDBClient as GrpcClient } from './grpc-client';

@@ -41,80 +41,80 @@ export class NativeBindings {
     private lib: any;
 
     // FFIs
-    public toondb_open: any;
-    public toondb_open_with_config: any;
-    public toondb_close: any;
+    public sochdb_open: any;
+    public sochdb_open_with_config: any;
+    public sochdb_close: any;
 
     // Transactional Operations (mapped to base functions)
-    public toondb_begin_txn: any;
-    public toondb_commit: any;
-    public toondb_abort: any;
+    public sochdb_begin_txn: any;
+    public sochdb_commit: any;
+    public sochdb_abort: any;
 
     // KV Operations (All take DatabaseHandle AND TxnHandle)
     // put: (db, txn, key, klen, val, vlen) -> int
-    public toondb_put: any;
+    public sochdb_put: any;
     // get: (db, txn, key, klen, val_out*, len_out*) -> int
-    public toondb_get: any;
+    public sochdb_get: any;
     // delete: (db, txn, key, klen) -> int
-    public toondb_delete: any;
+    public sochdb_delete: any;
 
     // Path Operations
-    public toondb_put_path: any;
-    public toondb_get_path: any;
+    public sochdb_put_path: any;
+    public sochdb_get_path: any;
 
     // Scanning
-    public toondb_scan_prefix: any;
-    public toondb_iterator_next: any;
-    public toondb_iterator_close: any;
+    public sochdb_scan_prefix: any;
+    public sochdb_iterator_next: any;
+    public sochdb_iterator_close: any;
 
     // Stats
-    public toondb_stats: any;
-    public toondb_checkpoint: any;
+    public sochdb_stats: any;
+    public sochdb_checkpoint: any;
 
     // Memory
-    public toondb_free_bytes: any;
+    public sochdb_free_bytes: any;
 
     private constructor() {
         const libPath = findLibrary();
         try {
             this.lib = koffi.load(libPath);
         } catch (error: any) {
-            console.error(`Failed to load ToonDB library from ${libPath}:`, error);
+            console.error(`Failed to load SochDB library from ${libPath}:`, error);
             throw error;
         }
 
         // Initialize bindings
 
         // DB Management
-        this.toondb_open = this.lib.func('toondb_open', DatabaseHandle, ['string']);
-        this.toondb_open_with_config = this.lib.func('toondb_open_with_config', DatabaseHandle, ['string', DatabaseConfig]);
-        this.toondb_close = this.lib.func('toondb_close', 'void', [DatabaseHandle]);
+        this.sochdb_open = this.lib.func('sochdb_open', DatabaseHandle, ['string']);
+        this.sochdb_open_with_config = this.lib.func('sochdb_open_with_config', DatabaseHandle, ['string', DatabaseConfig]);
+        this.sochdb_close = this.lib.func('sochdb_close', 'void', [DatabaseHandle]);
 
         // Transactions
-        this.toondb_begin_txn = this.lib.func('toondb_begin_txn', TxnHandle, [DatabaseHandle]);
-        this.toondb_commit = this.lib.func('toondb_commit', CommitResult, [DatabaseHandle, TxnHandle]);
-        this.toondb_abort = this.lib.func('toondb_abort', 'int', [DatabaseHandle, TxnHandle]);
+        this.sochdb_begin_txn = this.lib.func('sochdb_begin_txn', TxnHandle, [DatabaseHandle]);
+        this.sochdb_commit = this.lib.func('sochdb_commit', CommitResult, [DatabaseHandle, TxnHandle]);
+        this.sochdb_abort = this.lib.func('sochdb_abort', 'int', [DatabaseHandle, TxnHandle]);
 
         // KV Operations
-        this.toondb_put = this.lib.func('toondb_put', 'int', [DatabaseHandle, TxnHandle, 'uint8*', 'size_t', 'uint8*', 'size_t']);
-        this.toondb_get = this.lib.func('toondb_get', 'int', [DatabaseHandle, TxnHandle, 'uint8*', 'size_t', koffi.out(koffi.pointer('uint8*')), koffi.out(koffi.pointer('size_t'))]);
-        this.toondb_delete = this.lib.func('toondb_delete', 'int', [DatabaseHandle, TxnHandle, 'uint8*', 'size_t']);
+        this.sochdb_put = this.lib.func('sochdb_put', 'int', [DatabaseHandle, TxnHandle, 'uint8*', 'size_t', 'uint8*', 'size_t']);
+        this.sochdb_get = this.lib.func('sochdb_get', 'int', [DatabaseHandle, TxnHandle, 'uint8*', 'size_t', koffi.out(koffi.pointer('uint8*')), koffi.out(koffi.pointer('size_t'))]);
+        this.sochdb_delete = this.lib.func('sochdb_delete', 'int', [DatabaseHandle, TxnHandle, 'uint8*', 'size_t']);
 
         // Path Operations
-        this.toondb_put_path = this.lib.func('toondb_put_path', 'int', [DatabaseHandle, TxnHandle, 'string', 'uint8*', 'size_t']);
-        this.toondb_get_path = this.lib.func('toondb_get_path', 'int', [DatabaseHandle, TxnHandle, 'string', koffi.out(koffi.pointer('uint8*')), koffi.out(koffi.pointer('size_t'))]);
+        this.sochdb_put_path = this.lib.func('sochdb_put_path', 'int', [DatabaseHandle, TxnHandle, 'string', 'uint8*', 'size_t']);
+        this.sochdb_get_path = this.lib.func('sochdb_get_path', 'int', [DatabaseHandle, TxnHandle, 'string', koffi.out(koffi.pointer('uint8*')), koffi.out(koffi.pointer('size_t'))]);
 
         // Scanning
-        this.toondb_scan_prefix = this.lib.func('toondb_scan_prefix', IteratorHandle, [DatabaseHandle, TxnHandle, 'uint8*', 'size_t']);
-        this.toondb_iterator_next = this.lib.func('toondb_scan_next', 'int', [IteratorHandle, koffi.out(koffi.pointer('uint8*')), koffi.out(koffi.pointer('size_t')), koffi.out(koffi.pointer('uint8*')), koffi.out(koffi.pointer('size_t'))]);
-        this.toondb_iterator_close = this.lib.func('toondb_scan_free', 'void', [IteratorHandle]);
+        this.sochdb_scan_prefix = this.lib.func('sochdb_scan_prefix', IteratorHandle, [DatabaseHandle, TxnHandle, 'uint8*', 'size_t']);
+        this.sochdb_iterator_next = this.lib.func('sochdb_scan_next', 'int', [IteratorHandle, koffi.out(koffi.pointer('uint8*')), koffi.out(koffi.pointer('size_t')), koffi.out(koffi.pointer('uint8*')), koffi.out(koffi.pointer('size_t'))]);
+        this.sochdb_iterator_close = this.lib.func('sochdb_scan_free', 'void', [IteratorHandle]);
 
         // Stats & Checkpoint
-        this.toondb_stats = this.lib.func('toondb_stats', Stats, [DatabaseHandle]);
-        this.toondb_checkpoint = this.lib.func('toondb_checkpoint', 'int', [DatabaseHandle]);
+        this.sochdb_stats = this.lib.func('sochdb_stats', Stats, [DatabaseHandle]);
+        this.sochdb_checkpoint = this.lib.func('sochdb_checkpoint', 'int', [DatabaseHandle]);
 
         // Memory Management
-        this.toondb_free_bytes = this.lib.func('toondb_free_bytes', 'void', ['uint8*', 'size_t']);
+        this.sochdb_free_bytes = this.lib.func('sochdb_free_bytes', 'void', ['uint8*', 'size_t']);
     }
 
     public static getInstance(): NativeBindings {

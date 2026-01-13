@@ -1,10 +1,10 @@
 # =============================================================================
-# ToonDB Node.js SDK Release Pipeline
+# SochDB Node.js SDK Release Pipeline
 # =============================================================================
 #
 # WORKFLOW FLOW:
 #
-# 1. Download binaries from toondb/toondb (PARALLEL)
+# 1. Download binaries from sochdb/sochdb (PARALLEL)
 #    - Linux x86_64
 #    - macOS ARM64
 #    - Windows x64
@@ -17,7 +17,7 @@
 # REQUIRED SETUP:
 # =============================================================================
 #
-# 1. Create GitHub Environment "toondb-workflow"
+# 1. Create GitHub Environment "sochdb-workflow"
 # 2. Add Environment Secret: NPM_TOKEN
 # 3. GITHUB_TOKEN (provided automatically)
 #
@@ -32,8 +32,8 @@ on:
         description: 'Release version (e.g., 0.3.1)'
         required: true
         type: string
-      toondb_version:
-        description: 'Toondb release version (e.g., 0.3.1) - MUST match an existing toondb/toondb release tag'
+      sochdb_version:
+        description: 'Sochdb release version (e.g., 0.3.1) - MUST match an existing sochdb/sochdb release tag'
         required: false
         type: string
       dry_run:
@@ -43,7 +43,7 @@ on:
         type: boolean
 
 env:
-  TOONDB_REPO: toondb/toondb
+  SOCHDB_REPO: sochdb/sochdb
 
 jobs:
   # ===========================================================================
@@ -64,11 +64,11 @@ jobs:
             archive_ext: zip
 
     steps:
-      - name: Download binaries from main ToonDB release
+      - name: Download binaries from main SochDB release
         shell: bash
         run: |
-          # Use toondb_version if provided, otherwise use version
-          VERSION="${{ inputs.toondb_version }}"
+          # Use sochdb_version if provided, otherwise use version
+          VERSION="${{ inputs.sochdb_version }}"
           if [ -z "$VERSION" ]; then
             VERSION="${{ inputs.version }}"
           fi
@@ -77,14 +77,14 @@ jobs:
           TARGET="${{ matrix.target }}"
           
           if [ "${{ matrix.archive_ext }}" = "zip" ]; then
-            ASSET_NAME="toondb-${VERSION}-${TARGET}.zip"
+            ASSET_NAME="sochdb-${VERSION}-${TARGET}.zip"
           else
-            ASSET_NAME="toondb-${VERSION}-${TARGET}.tar.gz"
+            ASSET_NAME="sochdb-${VERSION}-${TARGET}.tar.gz"
           fi
           
-          DOWNLOAD_URL="https://github.com/${{ env.TOONDB_REPO }}/releases/download/${TAG}/${ASSET_NAME}"
-          echo "Downloading ToonDB binaries from main repository:"
-          echo "  Repository: ${{ env.TOONDB_REPO }}"
+          DOWNLOAD_URL="https://github.com/${{ env.SOCHDB_REPO }}/releases/download/${TAG}/${ASSET_NAME}"
+          echo "Downloading SochDB binaries from main repository:"
+          echo "  Repository: ${{ env.SOCHDB_REPO }}"
           echo "  Version: ${VERSION}"
           echo "  URL: $DOWNLOAD_URL"
           
@@ -99,7 +99,7 @@ jobs:
           fi
           
           # Normalize structure: ensure we have a directory named after target containing the files
-          # The tarballs/zips usually contain a folder named after the target (e.g., x86_64-unknown-linux-gnu/toondb-server)
+          # The tarballs/zips usually contain a folder named after the target (e.g., x86_64-unknown-linux-gnu/sochdb-server)
           # We want to upload just the contents or the folder itself to artifacts.
           
           echo "=== Extracted Contents ==="
@@ -111,18 +111,18 @@ jobs:
           
           # Find binaries and copy them
           # Linux/Mac
-          find extracted -name "toondb-bulk" -exec cp {} binaries/${TARGET}/ \;
-          find extracted -name "toondb-server" -exec cp {} binaries/${TARGET}/ \;
-          find extracted -name "toondb-grpc-server" -exec cp {} binaries/${TARGET}/ \;
+          find extracted -name "sochdb-bulk" -exec cp {} binaries/${TARGET}/ \;
+          find extracted -name "sochdb-server" -exec cp {} binaries/${TARGET}/ \;
+          find extracted -name "sochdb-grpc-server" -exec cp {} binaries/${TARGET}/ \;
           # Libraries (for Embedded Mode)
-          find extracted -name "libtoondb_storage.so" -exec cp {} binaries/${TARGET}/ \;
-          find extracted -name "libtoondb_storage.dylib" -exec cp {} binaries/${TARGET}/ \;
+          find extracted -name "libsochdb_storage.so" -exec cp {} binaries/${TARGET}/ \;
+          find extracted -name "libsochdb_storage.dylib" -exec cp {} binaries/${TARGET}/ \;
           
           # Windows
-          find extracted -name "toondb-bulk.exe" -exec cp {} binaries/${TARGET}/ \;
-          find extracted -name "toondb-grpc-server.exe" -exec cp {} binaries/${TARGET}/ \;
+          find extracted -name "sochdb-bulk.exe" -exec cp {} binaries/${TARGET}/ \;
+          find extracted -name "sochdb-grpc-server.exe" -exec cp {} binaries/${TARGET}/ \;
           # Libraries (for Embedded Mode)
-          find extracted -name "toondb_storage.dll" -exec cp {} binaries/${TARGET}/ \;
+          find extracted -name "sochdb_storage.dll" -exec cp {} binaries/${TARGET}/ \;
           
           # Make executable (Linux/Mac)
           if [ "${TARGET}" != "x86_64-pc-windows-msvc" ]; then
@@ -147,7 +147,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: download-binaries
     environment:
-      name: toondb-workflow
+      name: sochdb-workflow
     permissions:
       contents: write # For creating GitHub release
     steps:
@@ -246,14 +246,14 @@ jobs:
           prerelease: false
           generate_release_notes: true
           body: |
-            ## ToonDB Node.js SDK v${{ inputs.version }}
+            ## SochDB Node.js SDK v${{ inputs.version }}
             
-            Wraps pre-built binaries from [toondb/toondb v${{ inputs.toondb_version || inputs.version }}](https://github.com/toondb/toondb/releases/tag/v${{ inputs.toondb_version || inputs.version }})
+            Wraps pre-built binaries from [sochdb/sochdb v${{ inputs.sochdb_version || inputs.version }}](https://github.com/sochdb/sochdb/releases/tag/v${{ inputs.sochdb_version || inputs.version }})
             
             ### Installation
             
             ```bash
-            npm install @sushanth/toondb
+            npm install @sochdb/sochdb
             ```
             
             ### Supported Platforms
@@ -274,7 +274,7 @@ jobs:
     steps:
       - name: Generate Summary
         run: |
-          echo "## 🚀 ToonDB Node.js Release v${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 SochDB Node.js Release v${{ inputs.version }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           if [ "${{ inputs.dry_run }}" = "true" ]; then
@@ -285,11 +285,11 @@ jobs:
           
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📦 Binaries" >> $GITHUB_STEP_SUMMARY
-          TOONDB_VERSION="${{ inputs.toondb_version }}"
-          if [ -z "$TOONDB_VERSION" ]; then
-            TOONDB_VERSION="${{ inputs.version }}"
+          SOCHDB_VERSION="${{ inputs.sochdb_version }}"
+          if [ -z "$SOCHDB_VERSION" ]; then
+            SOCHDB_VERSION="${{ inputs.version }}"
           fi
-          echo "Pulled from: [toondb/toondb v${TOONDB_VERSION}](https://github.com/${{ env.TOONDB_REPO }}/releases/tag/v${TOONDB_VERSION})" >> $GITHUB_STEP_SUMMARY
+          echo "Pulled from: [sochdb/sochdb v${SOCHDB_VERSION}](https://github.com/${{ env.SOCHDB_REPO }}/releases/tag/v${SOCHDB_VERSION})" >> $GITHUB_STEP_SUMMARY
           
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### ✅ Status" >> $GITHUB_STEP_SUMMARY

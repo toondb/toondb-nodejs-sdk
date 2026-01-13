@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * ToonDB gRPC Server CLI Wrapper
+ * SochDB gRPC Server CLI Wrapper
  * Automatically locates and runs the platform-specific binary.
  */
 
@@ -29,7 +29,7 @@ function getPlatformBinary() {
     }
 
     // Look for bundled binary
-    const binName = `toondb-grpc-server${ext}`;
+    const binName = `sochdb-grpc-server${ext}`;
     const bundledPath = path.resolve(__dirname, '..', '_bin', target, binName);
 
     if (fs.existsSync(bundledPath)) {
@@ -37,17 +37,17 @@ function getPlatformBinary() {
     }
 
     // Fallback: Check environment variable
-    if (process.env.TOONDB_GRPC_SERVER_PATH) {
-        return process.env.TOONDB_GRPC_SERVER_PATH;
+    if (process.env.SOCHDB_GRPC_SERVER_PATH) {
+        return process.env.SOCHDB_GRPC_SERVER_PATH;
     }
 
     throw new Error(`
-toondb-grpc-server binary not found!
+sochdb-grpc-server binary not found!
 Searched at: ${bundledPath}
 
 To fix:
-1. Reinstall the package: npm install --force @sushanth/toondb
-2. Or set TOONDB_GRPC_SERVER_PATH environment variable
+1. Reinstall the package: npm install --force @sushanth/sochdb
+2. Or set SOCHDB_GRPC_SERVER_PATH environment variable
     `);
 }
 
@@ -63,7 +63,7 @@ try {
     });
 
     child.on('error', (err) => {
-        console.error(`Failed to start toondb-grpc-server: ${err.message}`);
+        console.error(`Failed to start sochdb-grpc-server: ${err.message}`);
         process.exit(1);
     });
 
@@ -75,6 +75,6 @@ try {
     });
 
 } catch (err) {
-    console.error(`[toondb-js] Error: ${err.message}`);
+    console.error(`[sochdb-js] Error: ${err.message}`);
     process.exit(1);
 }

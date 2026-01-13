@@ -10,18 +10,18 @@ const { execSync } = require('child_process');
 
 // Only run on Unix-like systems
 if (process.platform === 'win32') {
-  console.log('[toondb] Skipping chmod on Windows');
+  console.log('[sochdb] Skipping chmod on Windows');
   process.exit(0);
 }
 
 const binDir = path.join(__dirname, '..', '_bin');
 
 if (!fs.existsSync(binDir)) {
-  console.log('[toondb] No _bin directory found, skipping postinstall (will be populated on first use)');
+  console.log('[sochdb] No _bin directory found, skipping postinstall (will be populated on first use)');
   process.exit(0);
 }
 
-const binaryNames = ['toondb-server', 'toondb-bulk', 'toondb-grpc-server'];
+const binaryNames = ['sochdb-server', 'sochdb-bulk', 'sochdb-grpc-server'];
 const targets = [
   'aarch64-apple-darwin',
   'x86_64-apple-darwin',
@@ -39,12 +39,12 @@ for (const target of targets) {
         fs.chmodSync(binaryPath, 0o755);
         fixed++;
       } catch (err) {
-        console.warn(`[toondb] Warning: Could not chmod ${binaryPath}: ${err.message}`);
+        console.warn(`[sochdb] Warning: Could not chmod ${binaryPath}: ${err.message}`);
       }
     }
   }
 }
 
 if (fixed > 0) {
-  console.log(`[toondb] Made ${fixed} native binaries executable`);
+  console.log(`[sochdb] Made ${fixed} native binaries executable`);
 }

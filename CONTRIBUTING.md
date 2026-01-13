@@ -1,6 +1,6 @@
-# Contributing to ToonDB Node.js SDK
+# Contributing to SochDB Node.js SDK
 
-Thank you for your interest in contributing to the ToonDB Node.js SDK! This guide provides all the information you need to build, test, and contribute to the project.
+Thank you for your interest in contributing to the SochDB Node.js SDK! This guide provides all the information you need to build, test, and contribute to the project.
 
 ---
 
@@ -31,8 +31,8 @@ Thank you for your interest in contributing to the ToonDB Node.js SDK! This guid
 
 ```bash
 # Clone the repository
-git clone https://github.com/toondb/toondb-nodejs-sdk.git
-cd toondb-nodejs-sdk
+git clone https://github.com/sochdb/sochdb-nodejs-sdk.git
+cd sochdb-nodejs-sdk
 
 # Install dependencies
 npm install
@@ -80,7 +80,7 @@ If you need to regenerate gRPC stubs:
 npm install -g protoc-gen-ts
 
 # Generate from proto files
-cd toondb/proto
+cd sochdb/proto
 protoc --ts_out=. --grpc_out=. *.proto
 ```
 
@@ -104,12 +104,12 @@ npm test -- grpc-client.test.ts
 ### Integration Tests
 
 ```bash
-# Start ToonDB server first
-cd toondb
-cargo run -p toondb-grpc
+# Start SochDB server first
+cd sochdb
+cargo run -p sochdb-grpc
 
 # In another terminal, run integration tests
-cd toondb-nodejs-sdk
+cd sochdb-nodejs-sdk
 npm run test:integration
 ```
 
@@ -131,12 +131,12 @@ npm run typecheck:watch
 
 ```bash
 # Development mode
-cd toondb
-cargo run -p toondb-grpc
+cd sochdb
+cargo run -p sochdb-grpc
 
 # Production mode (optimized)
-cargo build --release -p toondb-grpc
-./target/release/toondb-grpc --host 0.0.0.0 --port 50051
+cargo build --release -p sochdb-grpc
+./target/release/sochdb-grpc --host 0.0.0.0 --port 50051
 ```
 
 ### Server Configuration
@@ -151,7 +151,7 @@ The server runs all business logic including:
 
 ### Configuration File
 
-Create `toondb-server-config.toml`:
+Create `sochdb-server-config.toml`:
 
 ```toml
 [server]
@@ -225,8 +225,8 @@ test: Add integration tests for graphs
 
 1. **Fork and Clone**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/toondb-nodejs-sdk.git
-   cd toondb-nodejs-sdk
+   git clone https://github.com/YOUR_USERNAME/sochdb-nodejs-sdk.git
+   cd sochdb-nodejs-sdk
    ```
 
 2. **Create Feature Branch**
@@ -267,7 +267,7 @@ test: Add integration tests for graphs
 
 ```
 ┌────────────────────────────────────────────────┐
-│         Rust Server (toondb-grpc)              │
+│         Rust Server (sochdb-grpc)              │
 ├────────────────────────────────────────────────┤
 │  • All business logic (Graph, Policy, Search)  │
 │  • Vector operations (HNSW)                    │
@@ -290,7 +290,7 @@ test: Add integration tests for graphs
 ### Key Components
 
 **grpc-client.ts**
-- ToonDBClient class for gRPC
+- SochDBClient class for gRPC
 - All server operations
 - Connection management
 - Error handling
@@ -324,13 +324,13 @@ test: Add integration tests for graphs
 
 **Key Changes:**
 - Removed embedded `Database` class
-- All operations now go through `ToonDBClient`
+- All operations now go through `SochDBClient`
 - Server must be running for all operations
 - FFI bindings removed
 
 **Old Code:**
 ```typescript
-import { Database } from '@sushanth/toondb';
+import { Database } from '@sushanth/sochdb';
 
 const db = await Database.open('./data');
 await db.put(Buffer.from('key'), Buffer.from('value'));
@@ -339,17 +339,17 @@ await db.close();
 
 **New Code:**
 ```typescript
-import { ToonDBClient } from '@sushanth/toondb';
+import { SochDBClient } from '@sushanth/sochdb';
 
-// Start server first: cargo run -p toondb-grpc
-const client = new ToonDBClient({ address: 'localhost:50051' });
+// Start server first: cargo run -p sochdb-grpc
+const client = new SochDBClient({ address: 'localhost:50051' });
 await client.putKv('key', Buffer.from('value'));
 await client.close();
 ```
 
 **Migration Checklist:**
-- [ ] Start ToonDB server (cargo run -p toondb-grpc)
-- [ ] Replace `Database.open()` with `new ToonDBClient()`
+- [ ] Start SochDB server (cargo run -p sochdb-grpc)
+- [ ] Replace `Database.open()` with `new SochDBClient()`
 - [ ] Update connection strings to point to server
 - [ ] Add error handling for all operations
 - [ ] Remove any FFI-related code
@@ -425,11 +425,11 @@ npm run benchmark -- vector-search
 
 ```bash
 # Start server
-cd toondb
-cargo run -p toondb-grpc --release
+cd sochdb
+cargo run -p sochdb-grpc --release
 
 # Run load test
-cd toondb-nodejs-sdk
+cd sochdb-nodejs-sdk
 npm run test:load
 ```
 
@@ -473,13 +473,13 @@ open docs/index.html
 
 ## Getting Help
 
-- **Main Repo**: https://github.com/toondb/toondb
-- **Node.js SDK Issues**: https://github.com/toondb/toondb-nodejs-sdk/issues
-- **Discussions**: https://github.com/toondb/toondb/discussions
-- **Contributing Guide**: See main repo [CONTRIBUTING.md](https://github.com/toondb/toondb/blob/main/CONTRIBUTING.md)
+- **Main Repo**: https://github.com/sochdb/sochdb
+- **Node.js SDK Issues**: https://github.com/sochdb/sochdb-nodejs-sdk/issues
+- **Discussions**: https://github.com/sochdb/sochdb/discussions
+- **Contributing Guide**: See main repo [CONTRIBUTING.md](https://github.com/sochdb/sochdb/blob/main/CONTRIBUTING.md)
 
 ---
 
 ## License
 
-By contributing to ToonDB Node.js SDK, you agree that your contributions will be licensed under the Apache License 2.0.
+By contributing to SochDB Node.js SDK, you agree that your contributions will be licensed under the Apache License 2.0.

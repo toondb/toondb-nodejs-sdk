@@ -1,5 +1,5 @@
 /**
- * ToonDB Error Classes
+ * SochDB Error Classes
  *
  * @packageDocumentation
  */
@@ -13,20 +13,20 @@
 //     http://www.apache.org/licenses/LICENSE-2.0
 
 /**
- * Base error class for all ToonDB errors.
+ * Base error class for all SochDB errors.
  */
-export class ToonDBError extends Error {
+export class SochDBError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'ToonDBError';
-    Object.setPrototypeOf(this, ToonDBError.prototype);
+    this.name = 'SochDBError';
+    Object.setPrototypeOf(this, SochDBError.prototype);
   }
 }
 
 /**
  * Error thrown when connection to the database fails.
  */
-export class ConnectionError extends ToonDBError {
+export class ConnectionError extends SochDBError {
   constructor(message: string) {
     super(message);
     this.name = 'ConnectionError';
@@ -37,7 +37,7 @@ export class ConnectionError extends ToonDBError {
 /**
  * Error thrown when a transaction operation fails.
  */
-export class TransactionError extends ToonDBError {
+export class TransactionError extends SochDBError {
   constructor(message: string) {
     super(message);
     this.name = 'TransactionError';
@@ -48,7 +48,7 @@ export class TransactionError extends ToonDBError {
 /**
  * Error thrown when there's a protocol error in IPC communication.
  */
-export class ProtocolError extends ToonDBError {
+export class ProtocolError extends SochDBError {
   constructor(message: string) {
     super(message);
     this.name = 'ProtocolError';
@@ -59,7 +59,7 @@ export class ProtocolError extends ToonDBError {
 /**
  * Error thrown when a database operation fails.
  */
-export class DatabaseError extends ToonDBError {
+export class DatabaseError extends SochDBError {
   constructor(message: string) {
     super(message);
     this.name = 'DatabaseError';

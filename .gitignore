@@ -144,4 +144,4 @@ vite.config.ts.timestamp-*
 # Local Binaries
 _bin/
 c-code.py
-toondb_js.txt
+sochdb_js.txt

@@ -1,7 +1,7 @@
 /**
- * ToonDB Embedded Server Manager
+ * SochDB Embedded Server Manager
  *
- * Manages the lifecycle of the ToonDB server process for embedded mode.
+ * Manages the lifecycle of the SochDB server process for embedded mode.
  * Automatically starts the server when needed and stops it on cleanup.
  *
  * @packageDocumentation
@@ -19,19 +19,19 @@ import { spawn, ChildProcess } from 'child_process';
 import { ConnectionError, DatabaseError } from './errors';
 
 /**
- * Find the toondb-server binary (provides IPC interface)
+ * Find the sochdb-server binary (provides IPC interface)
  * 
- * Note: toondb-server uses Unix domain sockets, not available on Windows.
+ * Note: sochdb-server uses Unix domain sockets, not available on Windows.
  * On Windows, use the gRPC client instead for cross-platform compatibility.
  */
 function findServerBinary(): string {
   const platform = process.platform;
   const arch = process.arch;
 
-  // Windows doesn't support Unix sockets, toondb-server is not available
+  // Windows doesn't support Unix sockets, sochdb-server is not available
   if (platform === 'win32') {
     throw new DatabaseError(
-      'toondb-server is not available on Windows (requires Unix domain sockets). ' +
+      'sochdb-server is not available on Windows (requires Unix domain sockets). ' +
       'Use the gRPC client for cross-platform support: ' +
       'const client = await GrpcClient.connect("localhost:50051")'
     );
@@ -44,7 +44,7 @@ function findServerBinary(): string {
     target = arch === 'arm64' ? 'aarch64-unknown-linux-gnu' : 'x86_64-unknown-linux-gnu';
   }
 
-  const binaryName = 'toondb-server';
+  const binaryName = 'sochdb-server';
 
   // Search paths - prioritize bundled binaries
   const searchPaths = [
@@ -59,7 +59,7 @@ function findServerBinary(): string {
     path.join(__dirname, '..', '..', 'target', 'debug', binaryName),
     path.join(__dirname, '..', '..', '..', 'target', 'release', binaryName),
     path.join(__dirname, '..', '..', '..', 'target', 'debug', binaryName),
-    // Absolute paths for toondb workspace
+    // Absolute paths for sochdb workspace
     path.resolve(process.cwd(), '_bin', target, binaryName),
     path.resolve(process.cwd(), 'target', 'release', binaryName),
     path.resolve(process.cwd(), '..', 'target', 'release', binaryName),
@@ -83,7 +83,7 @@ function findServerBinary(): string {
   throw new DatabaseError(
     `Could not find ${binaryName}. ` +
     `The pre-built binary may not be available for your platform (${platform}/${arch}). ` +
-    `Install via: cargo build --release -p toondb-tools`
+    `Install via: cargo build --release -p sochdb-tools`
   );
 }
 
@@ -132,7 +132,7 @@ interface ServerInstance {
 const runningServers: Map<string, ServerInstance> = new Map();
 
 /**
- * Start an embedded ToonDB server for the given database path.
+ * Start an embedded SochDB server for the given database path.
  * If a server is already running for this path, return the existing instance.
  *
  * @param dbPath - Path to the database directory
@@ -140,7 +140,7 @@ const runningServers: Map<string, ServerInstance> = new Map();
  */
 export async function startEmbeddedServer(dbPath: string): Promise<string> {
   const absolutePath = path.resolve(dbPath);
-  const socketPath = path.join(absolutePath, 'toondb.sock');
+  const socketPath = path.join(absolutePath, 'sochdb.sock');
 
   // Check if server already running for this path
   const existing = runningServers.get(absolutePath);
@@ -188,13 +188,13 @@ export async function startEmbeddedServer(dbPath: string): Promise<string> {
   serverProcess.on('exit', (code, signal) => {
     runningServers.delete(absolutePath);
     if (code !== 0 && code !== null) {
-      console.error(`ToonDB server exited with code ${code}: ${stderrOutput}`);
+      console.error(`SochDB server exited with code ${code}: ${stderrOutput}`);
     }
   });
 
   serverProcess.on('error', (err) => {
     runningServers.delete(absolutePath);
-    console.error(`Failed to start ToonDB server: ${err.message}`);
+    console.error(`Failed to start SochDB server: ${err.message}`);
   });
 
   // Store instance

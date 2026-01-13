@@ -20,7 +20,7 @@ export class EmbeddedTransaction {
 
     async put(key: Buffer, value: Buffer): Promise<void> {
         this.ensureActive();
-        const res = this.bindings.toondb_put(this.dbHandle, this.txnHandle, key, key.length, value, value.length);
+        const res = this.bindings.sochdb_put(this.dbHandle, this.txnHandle, key, key.length, value, value.length);
         if (res !== 0) {
             throw new DatabaseError('Failed to put value');
         }
@@ -33,7 +33,7 @@ export class EmbeddedTransaction {
         const outLen = [0];
 
         // returns 0 on success, 1 on not found, -1 on error
-        const res = this.bindings.toondb_get(this.dbHandle, this.txnHandle, key, key.length, outPtr, outLen);
+        const res = this.bindings.sochdb_get(this.dbHandle, this.txnHandle, key, key.length, outPtr, outLen);
 
         if (res === 1) { // Not found
             return null;
@@ -48,14 +48,14 @@ export class EmbeddedTransaction {
         const buffer = Buffer.from(koffi.decode(ptr, 'uint8', len));
 
         // Free native memory
-        this.bindings.toondb_free_bytes(ptr, len);
+        this.bindings.sochdb_free_bytes(ptr, len);
 
         return buffer;
     }
 
     async delete(key: Buffer): Promise<void> {
         this.ensureActive();
-        const res = this.bindings.toondb_delete(this.dbHandle, this.txnHandle, key, key.length);
+        const res = this.bindings.sochdb_delete(this.dbHandle, this.txnHandle, key, key.length);
         if (res !== 0) {
             throw new DatabaseError('Failed to delete value');
         }
@@ -63,7 +63,7 @@ export class EmbeddedTransaction {
 
     async putPath(path: string, value: Buffer): Promise<void> {
         this.ensureActive();
-        const res = this.bindings.toondb_put_path(this.dbHandle, this.txnHandle, path, value, value.length);
+        const res = this.bindings.sochdb_put_path(this.dbHandle, this.txnHandle, path, value, value.length);
         if (res !== 0) {
             throw new DatabaseError('Failed to put path');
         }
@@ -75,7 +75,7 @@ export class EmbeddedTransaction {
         const outPtr = [null];
         const outLen = [0];
 
-        const res = this.bindings.toondb_get_path(this.dbHandle, this.txnHandle, path, outPtr, outLen);
+        const res = this.bindings.sochdb_get_path(this.dbHandle, this.txnHandle, path, outPtr, outLen);
 
         if (res === 1) {
             return null;
@@ -87,7 +87,7 @@ export class EmbeddedTransaction {
         const ptr = outPtr[0];
         const len = outLen[0];
         const buffer = Buffer.from(koffi.decode(ptr, 'uint8', len));
-        this.bindings.toondb_free_bytes(ptr, len);
+        this.bindings.sochdb_free_bytes(ptr, len);
 
         return buffer;
     }
@@ -95,7 +95,7 @@ export class EmbeddedTransaction {
     async *scanPrefix(prefix: Buffer): AsyncGenerator<[Buffer, Buffer]> {
         this.ensureActive();
 
-        const iter = this.bindings.toondb_scan_prefix(this.dbHandle, this.txnHandle, prefix, prefix.length);
+        const iter = this.bindings.sochdb_scan_prefix(this.dbHandle, this.txnHandle, prefix, prefix.length);
         if (!iter) return;
 
         try {
@@ -106,7 +106,7 @@ export class EmbeddedTransaction {
 
             while (true) {
                 // Returns 0 on success, 1 on done, -1 on error
-                const res = this.bindings.toondb_iterator_next(iter, keyPtr, keyLen, valPtr, valLen);
+                const res = this.bindings.sochdb_iterator_next(iter, keyPtr, keyLen, valPtr, valLen);
                 if (res === 1) break; // Done
                 if (res !== 0) throw new DatabaseError('Scan failed');
 
@@ -120,27 +120,27 @@ export class EmbeddedTransaction {
                 // Yes: `let mut key_buf = key.into_boxed_slice();`
                 // So we own it and must free it?
                 // `let _ = Box::into_raw(key_buf);` -> leaks.
-                // But `toondb_scan_next` doesn't seem to export a free function for these individual items?
-                // Wait, `toondb_scan_next` returns them. Does the caller free them?
-                // Usually yes. `NativeBindings` has `toondb_free_bytes`.
+                // But `sochdb_scan_next` doesn't seem to export a free function for these individual items?
+                // Wait, `sochdb_scan_next` returns them. Does the caller free them?
+                // Usually yes. `NativeBindings` has `sochdb_free_bytes`.
 
-                this.bindings.toondb_free_bytes(keyPtr[0], keyLen[0]);
+                this.bindings.sochdb_free_bytes(keyPtr[0], keyLen[0]);
 
                 // Decode value 
                 const v = Buffer.from(koffi.decode(valPtr[0], 'uint8', valLen[0]));
-                this.bindings.toondb_free_bytes(valPtr[0], valLen[0]);
+                this.bindings.sochdb_free_bytes(valPtr[0], valLen[0]);
 
                 yield [k, v];
             }
         } finally {
-            this.bindings.toondb_iterator_close(iter);
+            this.bindings.sochdb_iterator_close(iter);
         }
     }
 
     async commit(): Promise<void> {
         this.ensureActive();
 
-        const result = this.bindings.toondb_commit(this.dbHandle, this.txnHandle);
+        const result = this.bindings.sochdb_commit(this.dbHandle, this.txnHandle);
         this.committed = true;
 
         if (result.error_code !== 0) {
@@ -152,7 +152,7 @@ export class EmbeddedTransaction {
     async abort(): Promise<void> {
         if (!this.isActive()) return;
 
-        this.bindings.toondb_abort(this.dbHandle, this.txnHandle);
+        this.bindings.sochdb_abort(this.dbHandle, this.txnHandle);
         this.aborted = true;
     }
 

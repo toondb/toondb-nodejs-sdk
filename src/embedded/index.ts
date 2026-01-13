@@ -1,7 +1,7 @@
 /**
  * Embedded Mode - FFI Support
  * 
- * Direct FFI bindings to ToonDB native library.
+ * Direct FFI bindings to SochDB native library.
  * No server required.
  */
 

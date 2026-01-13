@@ -1,5 +1,5 @@
 /**
- * SQL Engine for ToonDB JavaScript SDK
+ * SQL Engine for SochDB JavaScript SDK
  *
  * Provides SQL support on top of the KV storage backend.
  * Tables are stored as:

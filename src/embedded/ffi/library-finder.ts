@@ -1,7 +1,7 @@
 /**
  * FFI Library Finder
  * 
- * Locates the ToonDB native library for the current platform.
+ * Locates the SochDB native library for the current platform.
  * Search order matches Python SDK for consistency.
  */
 
@@ -34,21 +34,21 @@ function getLibraryFilename(): string {
     const platform = os.platform();
 
     if (platform === 'darwin') {
-        return 'libtoondb_storage.dylib';
+        return 'libsochdb_storage.dylib';
     } else if (platform === 'linux') {
-        return 'libtoondb_storage.so';
+        return 'libsochdb_storage.so';
     } else if (platform === 'win32') {
-        return 'toondb_storage.dll';
+        return 'sochdb_storage.dll';
     }
 
     throw new Error(`Unsupported platform: ${platform}`);
 }
 
 /**
- * Find the ToonDB native library
+ * Find the SochDB native library
  * 
  * Search order:
- * 1. TOONDB_LIB_PATH environment variable
+ * 1. SOCHDB_LIB_PATH environment variable
  * 2. Bundled library in package (_bin/{target}/)
  * 3. Development build (../target/release, ../target/debug)
  * 4. System paths
@@ -58,8 +58,8 @@ export function findLibrary(): string {
     const filename = getLibraryFilename();
 
     // 1. Environment variable override
-    if (process.env.TOONDB_LIB_PATH) {
-        const envPath = process.env.TOONDB_LIB_PATH;
+    if (process.env.SOCHDB_LIB_PATH) {
+        const envPath = process.env.SOCHDB_LIB_PATH;
         if (fs.existsSync(envPath)) {
             return envPath;
         }
@@ -77,8 +77,8 @@ export function findLibrary(): string {
         path.join(__dirname, '..', '..', 'target', 'release', filename),
         path.join(__dirname, '..', '..', 'target', 'debug', filename),
 
-        // From toondb monorepo (../../toondb/target/release)
-        path.join(__dirname, '..', '..', '..', '..', 'toondb', 'target', 'release', filename),
+        // From sochdb monorepo (../../sochdb/target/release)
+        path.join(__dirname, '..', '..', '..', '..', 'sochdb', 'target', 'release', filename),
 
         // Absolute paths
         path.resolve(process.cwd(), '_bin', target, filename),
@@ -106,8 +106,8 @@ export function findLibrary(): string {
     }
 
     throw new Error(
-        `Could not find ToonDB native library (${filename}). ` +
+        `Could not find SochDB native library (${filename}). ` +
         `Searched in: ${searchPaths.join(', ')}. ` +
-        `Set TOONDB_LIB_PATH environment variable or build the library.`
+        `Set SOCHDB_LIB_PATH environment variable or build the library.`
     );
 }

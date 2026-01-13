@@ -1,7 +1,7 @@
 /**
- * ToonDB gRPC Client - Thin SDK Wrapper
+ * SochDB gRPC Client - Thin SDK Wrapper
  *
- * This module provides a thin gRPC client wrapper for the ToonDB server.
+ * This module provides a thin gRPC client wrapper for the SochDB server.
  * All business logic runs on the server (Thick Server / Thin Client architecture).
  *
  * The client is approximately ~250 lines of code, delegating all operations to the server.
@@ -37,21 +37,21 @@ export interface GraphEdge {
   properties: Record<string, string>;
 }
 
-export interface ToonDBClientOptions {
+export interface SochDBClientOptions {
   address?: string;
   secure?: boolean;
   protoPath?: string;
 }
 
 /**
- * Thin gRPC client for ToonDB.
+ * Thin gRPC client for SochDB.
  *
- * All operations are delegated to the ToonDB gRPC server.
+ * All operations are delegated to the SochDB gRPC server.
  * This client provides a TypeScript interface over the gRPC protocol.
  *
  * Usage:
  * ```typescript
- * const client = new ToonDBClient({ address: 'localhost:50051' });
+ * const client = new SochDBClient({ address: 'localhost:50051' });
  *
  * // Create collection
  * await client.createCollection('docs', { dimension: 384 });
@@ -65,7 +65,7 @@ export interface ToonDBClientOptions {
  * const results = await client.search('docs', queryVector, 5);
  * ```
  */
-export class ToonDBClient {
+export class SochDBClient {
   private address: string;
   private credentials: grpc.ChannelCredentials;
   private stubs: Map<string, any> = new Map();
@@ -73,12 +73,12 @@ export class ToonDBClient {
   private packageDefinition: any;
   private proto: any;
 
-  constructor(options: ToonDBClientOptions = {}) {
+  constructor(options: SochDBClientOptions = {}) {
     this.address = options.address || 'localhost:50051';
     this.credentials = options.secure
       ? grpc.credentials.createSsl()
       : grpc.credentials.createInsecure();
-    this.protoPath = options.protoPath || path.join(__dirname, '../../proto/toondb.proto');
+    this.protoPath = options.protoPath || path.join(__dirname, '../../proto/sochdb.proto');
 
     // Load proto definition
     this.packageDefinition = protoLoader.loadSync(this.protoPath, {
@@ -89,7 +89,7 @@ export class ToonDBClient {
       oneofs: true,
     });
     const loadedPackage = grpc.loadPackageDefinition(this.packageDefinition) as any;
-    this.proto = loadedPackage?.toondb?.v1;
+    this.proto = loadedPackage?.sochdb?.v1;
   }
 
   private getStub(serviceName: string): any {
@@ -406,14 +406,14 @@ export class ToonDBClient {
 }
 
 /**
- * Connect to ToonDB gRPC server.
+ * Connect to SochDB gRPC server.
  */
-export function connect(address: string = 'localhost:50051', options: Omit<ToonDBClientOptions, 'address'> = {}): ToonDBClient {
+export function connect(address: string = 'localhost:50051', options: Omit<SochDBClientOptions, 'address'> = {}): SochDBClient {
   if (address.startsWith('grpc://')) {
     address = address.slice(7);
   }
-  return new ToonDBClient({ address, ...options });
+  return new SochDBClient({ address, ...options });
 }
 
 // Alias for backwards compatibility
-export const GrpcClient = ToonDBClient;
+export const GrpcClient = SochDBClient;

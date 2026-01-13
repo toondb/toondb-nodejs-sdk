@@ -18,7 +18,7 @@
  * Unified Output Format Semantics
  * 
  * Provides format enums for query results and LLM context packaging.
- * This mirrors the Rust toondb-client format module for consistency.
+ * This mirrors the Rust sochdb-client format module for consistency.
  */
 
 /**
