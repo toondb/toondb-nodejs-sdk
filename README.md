@@ -1,66 +1,7 @@
-# SochDB Node.js SDK v0.4.2
+# SochDB Node.js SDK v0.4.1
 
 **Dual-mode architecture: Embedded (FFI) + Server (gRPC/IPC)**  
 Choose the deployment mode that fits your needs.
-
-## 🆕 What's New in v0.4.2
-
-### Memory System - LLM-Native Memory for AI Agents
-Complete memory system with extraction, consolidation, and hybrid retrieval:
-
-```typescript
-import {
-  EmbeddedDatabase,
-  ExtractionPipeline,
-  Consolidator,
-  HybridRetriever,
-  AllowedSet,
-} from '@sochdb/sochdb';
-
-const db = await EmbeddedDatabase.open('./memory_db');
-
-// Extract entities and relations from text
-const pipeline = ExtractionPipeline.fromDatabase(db, 'user_123', {
-  entityTypes: ['person', 'organization', 'location'],
-  minConfidence: 0.7,
-});
-
-const result = await pipeline.extractAndCommit(
-  'Alice works at Acme Corp',
-  myLLMExtractor  // Your LLM integration
-);
-console.log(`Extracted ${result.entities.length} entities`);
-
-// Consolidate facts with event sourcing
-const consolidator = Consolidator.fromDatabase(db, 'user_123');
-await consolidator.add({
-  fact: { subject: 'Alice', predicate: 'lives_in', object: 'SF' },
-  source: 'conversation_1',
-  confidence: 0.9,
-});
-
-const updated = await consolidator.consolidate();
-const facts = await consolidator.getCanonicalFacts();
-
-// Hybrid retrieval with RRF fusion
-const retriever = HybridRetriever.fromDatabase(db, 'user_123', 'documents');
-await retriever.indexDocuments(docs);
-
-const results = await retriever.retrieve(
-  'machine learning papers',
-  queryEmbedding,
-  AllowedSet.fromNamespace('user_123')
-);
-```
-
-**[→ See Full Example](./examples/memory-system-example.ts)**
-
-**Key Features:**
-- ✅ Extraction Pipeline: Compile LLM outputs into typed facts
-- ✅ Event-Sourced Consolidation: Append-only with temporal updates
-- ✅ Hybrid Retrieval: RRF fusion of vector + keyword search
-- ✅ Namespace Isolation: Multi-tenant security with pre-filtering
-- ✅ Schema Validation: Type checking and confidence thresholds
 
 ## 🆕 What's New in v0.4.1
 
