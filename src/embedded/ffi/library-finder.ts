@@ -84,6 +84,13 @@ export function findLibrary(): string {
         path.resolve(process.cwd(), '_bin', target, filename),
         path.resolve(process.cwd(), 'target', 'release', filename),
         path.resolve(process.cwd(), '..', 'target', 'release', filename),
+
+        // 4. System-wide installation paths (no manual setup needed)
+        '/usr/local/lib/' + filename,
+        '/usr/lib/' + filename,
+        '/opt/homebrew/lib/' + filename,  // macOS Apple Silicon
+        '/opt/local/lib/' + filename,      // MacPorts
+        path.join(os.homedir(), '.sochdb', 'lib', filename),  // User install
     ];
 
     // Search for library
@@ -107,7 +114,8 @@ export function findLibrary(): string {
 
     throw new Error(
         `Could not find SochDB native library (${filename}). ` +
-        `Searched in: ${searchPaths.join(', ')}. ` +
-        `Set SOCHDB_LIB_PATH environment variable or build the library.`
+        `Searched in package paths, development builds, and system locations. ` +
+        `Install with: brew install sochdb (macOS) or download from https://github.com/sochdb/sochdb/releases ` +
+        `Alternatively, set SOCHDB_LIB_PATH environment variable to library path.`
     );
 }
