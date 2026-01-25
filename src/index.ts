@@ -42,6 +42,8 @@ export const VERSION = '0.4.2';
 // Embedded mode (FFI) - NEW
 export { EmbeddedDatabase, EmbeddedDatabaseConfig } from './embedded';
 export { EmbeddedTransaction } from './embedded';
+export { HnswIndex, HnswConfig, HnswBindings } from './embedded';
+export { SearchResult as HnswSearchResult } from './embedded';
 
 // Embedded mode (FFI) - Convenience alias
 export { EmbeddedDatabase as Database } from './embedded';
