@@ -374,9 +374,9 @@ console.log(`Pending: ${stats.pending}, Completed: ${stats.completed}`);
 
 ### For Concurrent Mode
 
-- **SochDB Core**: v0.4.4 or later
+- **SochDB Core**: Latest version
 - **Node.js**: 14.0+ (18.0+ recommended)
-- **Native Library**: `libsochdb_storage.{dylib,so}` v0.4.4+
+- **Native Library**: `libsochdb_storage.{dylib,so}`
 - **FFI**: Koffi (automatically installed)
 
 **Operating Systems:**
@@ -536,7 +536,7 @@ npm install
 
 ---
 
-## 🆕 Vector Search - Native HNSW (v0.4.2)
+## 🆕 Vector Search - Native HNSW
 
 SochDB now includes **native HNSW (Hierarchical Navigable Small World)** vector search for sub-millisecond similarity search across millions of vectors.
 
@@ -619,8 +619,6 @@ const results = await collection.search({ queryVector: [...], k: 10 });
 **⚠️ Current Limitation:** Collection API uses O(n) linear search in embedded mode. For production use with >10K vectors, use:
 - Direct HNSW API (above), OR
 - gRPC Server Mode (see below)
-
-**✅ Coming in v0.4.3:** Collection API will automatically use native HNSW
 
 #### 3. gRPC Server Mode (Production-Ready)
 
@@ -723,15 +721,15 @@ class HnswIndex {
 
 ### Roadmap
 
-- **v0.4.2** (current): Direct HNSW FFI bindings
-- **v0.4.3** (next): Collection API auto-uses HNSW in embedded mode
-- **v0.5.0**: Persistent HNSW indexes with disk storage
+- **Current**: Direct HNSW FFI bindings
+- **Next**: Collection API auto-uses HNSW in embedded mode
+- **Future**: Persistent HNSW indexes with disk storage
 
 ---
 
 # SochDB Node.js SDK Documentation
 
-**Version 0.4.2** | LLM-Optimized Embedded Database with Native Vector Search
+**LLM-Optimized Embedded Database with Native Vector Search**
 
 ---
 
@@ -3962,7 +3960,7 @@ A:
 A: Yes! Both modes have the same API. Change `Database.open()` to `SochDBClient()` and vice versa.
 
 **Q: Do temporal graphs work in embedded mode?**  
-A: Yes! As of v0.4.0, temporal graphs work in both embedded and server modes with identical APIs.
+A: Yes! Temporal graphs work in both embedded and server modes with identical APIs.
 
 **Q: Is embedded mode slower than server mode?**  
 A: Embedded mode is faster for single-process use (no network overhead). Server mode is better for distributed deployments.
