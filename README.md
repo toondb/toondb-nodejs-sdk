@@ -1,11 +1,31 @@
-# SochDB Node.js SDK v0.4.8
+# SochDB Node.js SDK
+
+**LLM-Optimized Embedded Database with Native Vector Search**
+
+---
+
+## Installation
+
+```bash
+npm install @sochdb/sochdb
+```
+
+Or from source:
+```bash
+cd sochdb-typescript-sdk
+npm install
+```
+
+---
+
+## Architecture: Flexible Deployment
 
 **Tri-mode architecture: Embedded + Concurrent + Server (gRPC/IPC)**  
 Choose the deployment mode that fits your needs.
 
 ## Quick Start
 
-### Concurrent Embedded Mode (NEW in v0.4.8)
+### Concurrent Embedded Mode
 
 For web applications with multiple Node.js processes (PM2 cluster, multiple workers):
 
@@ -518,20 +538,6 @@ for (const item of items) {
 
 // ✅ Fast - batch write
 await collection.insertBatch(items);
-```
-
----
-
-## Installation
-
-```bash
-npm install @sochdb/sochdb
-```
-
-Or from source:
-```bash
-cd sochdb-typescript-sdk
-npm install
 ```
 
 ---
