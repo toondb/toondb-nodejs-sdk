@@ -64,6 +64,74 @@ pm2 start server.js -i max
 pm2 logs
 ```
 
+### PM2 Ecosystem File
+
+```javascript
+// ecosystem.config.js
+module.exports = {
+  apps: [{
+    name: 'api-server',
+    script: './server.js',
+    instances: 'max',  // Scale across all CPU cores
+    exec_mode: 'cluster',
+    env: {
+      NODE_ENV: 'production',
+      DB_PATH: './shared_db'  // All workers use same DB
+    }
+  }]
+};
+```
+
+```bash
+# Deploy with ecosystem file
+pm2 start ecosystem.config.js
+
+# Monitor all workers
+pm2 monit
+```
+
+### Docker Compose with PM2
+
+```yaml
+version: '3.8'
+services:
+  app:
+    build: .
+    environment:
+      - NODE_ENV=production
+      - INSTANCES=4  # 4 PM2 workers
+    volumes:
+      - ./data:/app/data  # Shared database volume
+    ports:
+      - "3000:3000"
+    command: pm2-runtime start ecosystem.config.js
+```
+
+### Kubernetes Deployment
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sochdb-app
+spec:
+  replicas: 4  # 4 pods share the database
+  template:
+    spec:
+      containers:
+      - name: app
+        image: myapp:latest
+        volumeMounts:
+        - name: db-storage
+          mountPath: /app/data
+      volumes:
+      - name: db-storage
+        persistentVolumeClaim:
+          claimName: sochdb-pvc  # Shared PVC with ReadWriteMany
+```
+
+---
+
 ## Features
 
 ### Memory System - LLM-Native Memory for AI Agents
@@ -297,6 +365,160 @@ console.log(`Pending: ${stats.pending}, Completed: ${stats.completed}`);
 - ✅ Distributed systems
 - ✅ Centralized business logic
 - ✅ Horizontal scaling
+
+---
+
+---
+
+## System Requirements
+
+### For Concurrent Mode
+
+- **SochDB Core**: v0.4.4 or later
+- **Node.js**: 14.0+ (18.0+ recommended)
+- **Native Library**: `libsochdb_storage.{dylib,so}` v0.4.4+
+- **FFI**: Koffi (automatically installed)
+
+**Operating Systems:**
+- ✅ Linux (Ubuntu 20.04+, RHEL 8+)
+- ✅ macOS (10.15+, both Intel and Apple Silicon)
+- ⚠️  Windows (requires native builds)
+
+**File Descriptors:**
+- Default limit: 1024 (sufficient for most workloads)
+- For high concurrency with PM2: `ulimit -n 4096`
+
+**Memory:**
+- Standard mode: ~50MB base + data
+- Concurrent mode: +4KB per concurrent reader slot (1024 slots = ~4MB overhead)
+- PM2 cluster: Each worker has independent memory
+
+---
+
+## Troubleshooting
+
+### "Database is locked" Error (Standard Mode)
+
+```
+Error: SQLITE_BUSY: database is locked
+```
+
+**Solution**: Use concurrent mode for multi-process access:
+
+```typescript
+// ❌ Standard mode - PM2 cluster will fail
+const db = new EmbeddedDatabase('./data.db');
+
+// ✅ Concurrent mode - PM2 cluster works!
+const db = EmbeddedDatabase.openConcurrent('./data.db');
+```
+
+### Library Not Found Error
+
+```
+Error: Dynamic library 'libsochdb_storage.dylib' not found
+```
+
+**macOS**:
+```bash
+# Build and install library
+cd /path/to/sochdb
+cargo build --release
+sudo cp target/release/libsochdb_storage.dylib /usr/local/lib/
+```
+
+**Linux**:
+```bash
+cd /path/to/sochdb
+cargo build --release
+sudo cp target/release/libsochdb_storage.so /usr/local/lib/
+sudo ldconfig
+```
+
+**Development Mode** (no install):
+```bash
+export DYLD_LIBRARY_PATH=/path/to/sochdb/target/release  # macOS
+export LD_LIBRARY_PATH=/path/to/sochdb/target/release    # Linux
+```
+
+### PM2 Cluster Issues
+
+**Symptom**: Workers crash with "database locked"
+
+**Solution**: Ensure concurrent mode is used:
+```javascript
+// ecosystem.config.js
+module.exports = {
+  apps: [{
+    name: 'api',
+    script: './server.js',
+    instances: 4,
+    exec_mode: 'cluster',
+    env: {
+      USE_CONCURRENT_MODE: 'true'  // Flag to use openConcurrent()
+    }
+  }]
+};
+```
+
+```typescript
+// server.ts
+const db = process.env.USE_CONCURRENT_MODE 
+  ? EmbeddedDatabase.openConcurrent('./db')
+  : new EmbeddedDatabase('./db');
+
+console.log('Concurrent mode:', db.isConcurrent);  // Should be true
+```
+
+### Docker Volume Permissions
+
+**Symptom**: `EACCES: permission denied` when opening database
+
+**Solution**: Fix volume ownership:
+```dockerfile
+FROM node:18
+WORKDIR /app
+
+# Create data directory with correct permissions
+RUN mkdir -p /app/data && chown -R node:node /app
+
+# Switch to non-root user
+USER node
+
+COPY --chown=node:node . .
+RUN npm install
+
+CMD ["npm", "start"]
+```
+
+### Performance Issues
+
+**Symptom**: Concurrent reads slower than expected
+
+**Check 1** - Verify concurrent mode:
+```typescript
+if (!db.isConcurrent) {
+    console.error('Database is not in concurrent mode!');
+    process.exit(1);
+}
+```
+
+**Check 2** - Monitor PM2 workers:
+```bash
+pm2 monit  # Real-time monitoring
+pm2 logs --lines 200  # Check for errors
+```
+
+**Check 3** - Batch writes:
+```typescript
+// ❌ Slow - individual writes
+for (const item of items) {
+    await collection.insert(item);
+}
+
+// ✅ Fast - batch write
+await collection.insertBatch(items);
+```
 
 ---
 
