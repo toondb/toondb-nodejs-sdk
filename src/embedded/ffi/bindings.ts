@@ -1,31 +1,31 @@
 import * as koffi from 'koffi';
 import { findLibrary } from './library-finder';
 
-// Opaque pointer types - wrap in function to handle duplicates
-function definePointerType(name: string) {
+// Helper to safely define koffi types (handles test environment where types may be pre-defined)
+function safeDefinePointer(name: string) {
   try {
     return koffi.pointer(name, koffi.opaque());
   } catch (e) {
-    // Type already defined in test environment, return undefined
-    // koffi will still recognize the type name in function signatures
-    return undefined as any;
+    // Type already exists - try to get it from koffi's type registry
+    // When a type is already defined, we can still use the string name in function signatures
+    return name as any;
   }
 }
 
-function defineStructType(name: string, fields: any) {
+function safeDefineStruct(name: string, fields: any) {
   try {
     return koffi.struct(name, fields);
   } catch (e) {
-    // Type already defined in test environment, return undefined
-    return undefined as any;
+    // Type already exists - return the name string
+    return name as any;
   }
 }
 
-const DatabaseHandle = definePointerType('DatabaseHandle');
-const IteratorHandle = definePointerType('IteratorHandle');
+const DatabaseHandle = safeDefinePointer('DatabaseHandle');
+const IteratorHandle = safeDefinePointer('IteratorHandle');
 
 // Structs
-const Stats = defineStructType('Stats', {
+const Stats = safeDefineStruct('Stats', {
     memtable_size_bytes: 'size_t',
     wal_size_bytes: 'size_t',
     active_transactions: 'uint32',
@@ -33,7 +33,7 @@ const Stats = defineStructType('Stats', {
     last_checkpoint_lsn: 'uint64'
 });
 
-const DatabaseConfig = defineStructType('DatabaseConfig', {
+const DatabaseConfig = safeDefineStruct('DatabaseConfig', {
     wal_enabled: 'bool',
     wal_enabled_set: 'bool',
     sync_mode: 'uint8',
@@ -45,12 +45,12 @@ const DatabaseConfig = defineStructType('DatabaseConfig', {
     default_index_policy_set: 'bool'
 });
 
-const TxnHandle = defineStructType('TxnHandle', {
+const TxnHandle = safeDefineStruct('TxnHandle', {
     txn_id: 'uint64',
     snapshot_ts: 'uint64'
 });
 
-const CommitResult = defineStructType('CommitResult', {
+const CommitResult = safeDefineStruct('CommitResult', {
     commit_ts: 'uint64',
     error_code: 'int32'
 });
