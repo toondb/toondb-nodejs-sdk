@@ -1,5 +1,5 @@
 /**
- * SochDB Node.js SDK v0.4.2
+ * SochDB Node.js SDK v0.4.4
  * 
  * Dual-mode architecture: Embedded (FFI) + Server (gRPC/IPC)
  * 
@@ -12,7 +12,12 @@
  *    - No server required - just npm install and run
  *    - Best for: Local development, simple apps
  * 
- * 2. Server Mode (gRPC/IPC) - For distributed systems:
+ * 2. Concurrent Mode (FFI) - For multi-process apps:
+ *    - Same FFI bindings with MVCC for concurrent access
+ *    - Multiple Node.js processes can access same database
+ *    - Best for: PM2 cluster, Express workers
+ * 
+ * 3. Server Mode (gRPC/IPC) - For distributed systems:
  *    - Thin client connecting to sochdb-grpc server
  *    - Best for: Production, multi-language, scalability
  * 
@@ -26,6 +31,15 @@
  * await db.close();
  * ```
  * 
+ * @example Concurrent Mode
+ * ```typescript
+ * import { Database } from '@sochdb/sochdb';
+ * 
+ * // Multiple processes can access simultaneously
+ * const db = Database.openConcurrent('./mydb');
+ * console.log(`Concurrent: ${db.isConcurrent}`);
+ * ```
+ * 
  * @example Server Mode
  * ```typescript
  * import { SochDBClient } from '@sochdb/sochdb';
@@ -37,7 +51,7 @@
  */
 
 // Version
-export const VERSION = '0.4.2';
+export const VERSION = '0.4.3';
 
 // Embedded mode (FFI) - NEW
 export { EmbeddedDatabase, EmbeddedDatabaseConfig } from './embedded';
@@ -105,7 +119,6 @@ export {
   Consolidator,
   HybridRetriever,
   AllowedSet,
-  NamespacePolicy,
 } from './memory';
 export type {
   Entity,
@@ -119,8 +132,46 @@ export type {
   RetrievalConfig,
   RetrievalResult,
   RetrievalResponse,
-  NamespaceGrant,
 } from './memory';
+
+// MCP - Model Context Protocol (v0.4.3)
+export {
+  McpServer,
+  McpClient,
+  McpError,
+  MCP_ERROR_CODES,
+} from './mcp';
+export type {
+  McpTool,
+  McpToolCall,
+  McpToolResult,
+  McpResource,
+  McpResourceContent,
+  McpPrompt,
+  McpPromptArgument,
+  McpPromptMessage,
+  McpServerCapabilities,
+  McpServerConfig,
+  McpClientConfig,
+  McpTransport,
+} from './mcp';
+
+// Policy Service (v0.4.3)
+export {
+  PolicyService,
+} from './policy';
+export type {
+  PolicyRule,
+  PolicyCondition,
+  PolicyEvaluation,
+  NamespacePolicy,
+  NamespaceGrant,
+  NamespacePermission,
+  PolicyAction,
+  PolicyRequest,
+  PolicySet,
+  PolicyAuditEntry,
+} from './policy';
 
 // Server mode (gRPC/IPC)
 export { SochDBClient } from './grpc-client';

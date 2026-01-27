@@ -37,11 +37,13 @@ export class EmbeddedDatabase {
     private closed = false;
     private path: string;
     private concurrent = false;
+    private _concurrentModeFallback = false;
 
-    private constructor(path: string, handle: any, concurrent = false) {
+    private constructor(path: string, handle: any, concurrent = false, fallback = false) {
         this.path = path;
         this.handle = handle;
         this.concurrent = concurrent;
+        this._concurrentModeFallback = fallback;
         this.bindings = NativeBindings.getInstance();
     }
 
@@ -125,13 +127,30 @@ export class EmbeddedDatabase {
      * ```
      * 
      * @param path - Path to database directory
+     * @param options - Optional configuration for concurrent mode
      * @returns EmbeddedDatabase instance in concurrent mode
      */
-    static openConcurrent(path: string): EmbeddedDatabase {
+    static openConcurrent(path: string, options?: { fallbackToStandard?: boolean }): EmbeddedDatabase {
         const bindings = NativeBindings.getInstance();
+        const fallbackToStandard = options?.fallbackToStandard ?? false;
         
-        if (!bindings.sochdb_open_concurrent) {
-            throw new DatabaseError('Concurrent mode not supported. Please upgrade the SochDB native library to v0.4.4+');
+        if (!bindings.isConcurrentModeAvailable()) {
+            if (fallbackToStandard) {
+                console.warn(
+                    '[SochDB] Concurrent mode not available in native library (requires v0.4.8+). ' +
+                    'Falling back to standard mode. For production multi-process deployments, ' +
+                    'please upgrade the SochDB native library.'
+                );
+                const handle = bindings.sochdb_open(path);
+                if (!handle) {
+                    throw new DatabaseError(`Failed to open database at ${path}`);
+                }
+                return new EmbeddedDatabase(path, handle, false, true);
+            }
+            throw new DatabaseError(
+                'Concurrent mode not supported. Please upgrade the SochDB native library to v0.4.8+ ' +
+                'or use openConcurrent(path, { fallbackToStandard: true }) to fall back to standard mode.'
+            );
         }
 
         const handle = bindings.sochdb_open_concurrent(path);
@@ -139,8 +158,8 @@ export class EmbeddedDatabase {
             throw new DatabaseError(`Failed to open database in concurrent mode at ${path}`);
         }
 
-        const isConcurrent = bindings.sochdb_is_concurrent(handle) === 1;
-        return new EmbeddedDatabase(path, handle, isConcurrent);
+        const isConcurrent = bindings.sochdb_is_concurrent?.(handle) === 1;
+        return new EmbeddedDatabase(path, handle, isConcurrent, false);
     }
 
     /**
@@ -148,6 +167,20 @@ export class EmbeddedDatabase {
      */
     get isConcurrent(): boolean {
         return this.concurrent;
+    }
+
+    /**
+     * Check if concurrent mode fell back to standard mode
+     */
+    get isConcurrentFallback(): boolean {
+        return this._concurrentModeFallback;
+    }
+
+    /**
+     * Check if concurrent mode is available in the native library
+     */
+    static isConcurrentModeAvailable(): boolean {
+        return NativeBindings.getInstance().isConcurrentModeAvailable();
     }
 
     /**

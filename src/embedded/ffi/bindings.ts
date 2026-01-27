@@ -39,6 +39,7 @@ const CommitResult = koffi.struct('CommitResult', {
 export class NativeBindings {
     private static instance: NativeBindings;
     private lib: any;
+    private _concurrentModeAvailable = false;
 
     // FFIs
     public sochdb_open: any;
@@ -95,10 +96,12 @@ export class NativeBindings {
         try {
             this.sochdb_open_concurrent = this.lib.func('sochdb_open_concurrent', DatabaseHandle, ['string']);
             this.sochdb_is_concurrent = this.lib.func('sochdb_is_concurrent', 'int', [DatabaseHandle]);
+            this._concurrentModeAvailable = true;
         } catch (error) {
             // Older library versions don't have concurrent mode
             this.sochdb_open_concurrent = null;
             this.sochdb_is_concurrent = null;
+            this._concurrentModeAvailable = false;
         }
         
         this.sochdb_close = this.lib.func('sochdb_close', 'void', [DatabaseHandle]);
@@ -135,5 +138,12 @@ export class NativeBindings {
             NativeBindings.instance = new NativeBindings();
         }
         return NativeBindings.instance;
+    }
+
+    /**
+     * Check if concurrent mode is available in the native library
+     */
+    public isConcurrentModeAvailable(): boolean {
+        return this._concurrentModeAvailable;
     }
 }
