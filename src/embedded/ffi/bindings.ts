@@ -12,11 +12,20 @@ function definePointerType(name: string) {
   }
 }
 
+function defineStructType(name: string, fields: any) {
+  try {
+    return koffi.struct(name, fields);
+  } catch (e) {
+    // Type already defined in test environment, return undefined
+    return undefined as any;
+  }
+}
+
 const DatabaseHandle = definePointerType('DatabaseHandle');
 const IteratorHandle = definePointerType('IteratorHandle');
 
 // Structs
-const Stats = koffi.struct('Stats', {
+const Stats = defineStructType('Stats', {
     memtable_size_bytes: 'size_t',
     wal_size_bytes: 'size_t',
     active_transactions: 'uint32',
@@ -24,7 +33,7 @@ const Stats = koffi.struct('Stats', {
     last_checkpoint_lsn: 'uint64'
 });
 
-const DatabaseConfig = koffi.struct('DatabaseConfig', {
+const DatabaseConfig = defineStructType('DatabaseConfig', {
     wal_enabled: 'bool',
     wal_enabled_set: 'bool',
     sync_mode: 'uint8',
@@ -36,12 +45,12 @@ const DatabaseConfig = koffi.struct('DatabaseConfig', {
     default_index_policy_set: 'bool'
 });
 
-const TxnHandle = koffi.struct('TxnHandle', {
+const TxnHandle = defineStructType('TxnHandle', {
     txn_id: 'uint64',
     snapshot_ts: 'uint64'
 });
 
-const CommitResult = koffi.struct('CommitResult', {
+const CommitResult = defineStructType('CommitResult', {
     commit_ts: 'uint64',
     error_code: 'int32'
 });
