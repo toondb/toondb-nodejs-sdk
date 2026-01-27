@@ -1,5 +1,5 @@
 /**
- * SochDB Node.js SDK v0.4.5
+ * SochDB Node.js SDK v0.4.6
  * 
  * Dual-mode architecture: Embedded (FFI) + Server (gRPC/IPC)
  * 
@@ -51,7 +51,7 @@
  */
 
 // Version
-export const VERSION = '0.4.5';
+export const VERSION = '0.4.6';
 
 // Embedded mode (FFI) - NEW
 export { EmbeddedDatabase, EmbeddedDatabaseConfig } from './embedded';
