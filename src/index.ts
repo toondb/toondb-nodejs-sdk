@@ -1,5 +1,5 @@
 /**
- * SochDB Node.js SDK v0.4.6
+ * SochDB Node.js SDK v0.4.7
  * 
  * Dual-mode architecture: Embedded (FFI) + Server (gRPC/IPC)
  * 
@@ -51,7 +51,7 @@
  */
 
 // Version
-export const VERSION = '0.4.6';
+export const VERSION = '0.4.7';
 
 // Embedded mode (FFI) - NEW
 export { EmbeddedDatabase, EmbeddedDatabaseConfig } from './embedded';
@@ -61,6 +61,25 @@ export { SearchResult as HnswSearchResult } from './embedded';
 
 // Embedded mode (FFI) - Convenience alias
 export { EmbeddedDatabase as Database } from './embedded';
+
+// Embedded mode (FFI) - Convenience functions for concurrent mode
+import { EmbeddedDatabase, EmbeddedDatabaseConfig } from './embedded';
+
+/**
+ * Open a database in concurrent mode (multi-process safe).
+ * Alias for EmbeddedDatabase.openConcurrent()
+ */
+export function openConcurrent(path: string, options?: { fallbackToStandard?: boolean }): EmbeddedDatabase {
+  return EmbeddedDatabase.openConcurrent(path, options);
+}
+
+/**
+ * Open a database in standard mode.
+ * Alias for EmbeddedDatabase.open()
+ */
+export function open(path: string, config?: EmbeddedDatabaseConfig): EmbeddedDatabase {
+  return EmbeddedDatabase.open(path, config);
+}
 
 // Namespace API (v0.4.1)
 export {

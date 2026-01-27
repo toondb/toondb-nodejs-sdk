@@ -64,8 +64,8 @@ describe('Queue API (v0.4.1)', () => {
 });
 
 describe('SDK Version', () => {
-  test('should be version 0.4.6', async () => {
+  test('should be version 0.4.7', async () => {
     const { VERSION } = await import('../src/index');
-    expect(VERSION).toBe('0.4.6');
+    expect(VERSION).toBe('0.4.7');
   });
 });

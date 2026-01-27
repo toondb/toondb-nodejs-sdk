@@ -431,7 +431,7 @@ const testEndToEndIntegration = test('End-to-End Integration', async () => {
 // ============================================================================
 async function runTests() {
   console.log('\n' + '='.repeat(60));
-  console.log('SochDB Node.js SDK v0.4.6 - Feature Tests');
+  console.log('SochDB Node.js SDK v0.4.7 - Feature Tests');
   console.log('='.repeat(60) + '\n');
 
   cleanup();
