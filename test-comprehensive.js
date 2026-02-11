@@ -277,7 +277,7 @@ async function main() {
     fs.rmSync(testDir, { recursive: true });
   }
 
-  console.log('🧪 ToonDB JavaScript SDK Comprehensive Feature Test\n');
+  console.log('🧪 SochDB JavaScript SDK Comprehensive Feature Test\n');
   console.log('Testing all features mentioned in README...\n');
   console.log('=' .repeat(60));
 

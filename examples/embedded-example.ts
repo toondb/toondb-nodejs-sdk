@@ -5,7 +5,7 @@
 import { Database } from '../src/index';
 
 async function main() {
-    console.log('=== ToonDB Node.js SDK - Embedded Mode (FFI) ===\n');
+    console.log('=== SochDB Node.js SDK - Embedded Mode (FFI) ===\n');
 
     // Open database (creates if doesn't exist)
     console.log('Opening database...');

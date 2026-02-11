@@ -125,23 +125,80 @@ function encodeQueueKey(key: QueueKey): Buffer {
 }
 
 /**
- * Decode queue key from bytes
+ * Decode queue key from bytes using positional parsing.
+ * Key format: "queue/" + queueId + "/" + i64BE(priority) + "/" + u64BE(readyTs) + "/" + u64BE(sequence) + "/" + taskId
+ * Binary fields may contain 0x2F ('/'), so split('/') is NOT safe.
  */
 function decodeQueueKey(data: Buffer): QueueKey {
-  const str = data.toString();
-  const parts = str.split('/');
-  
-  if (parts.length < 6 || parts[0] !== 'queue') {
-    throw new SochDBError('Invalid queue key format');
+  // Must start with "queue/"
+  const prefix = Buffer.from('queue/');
+  if (data.length < prefix.length || data.subarray(0, prefix.length).compare(prefix) !== 0) {
+    throw new SochDBError('Invalid queue key format: missing queue/ prefix');
   }
-  
-  return {
-    queueId: parts[1],
-    priority: 0, // Would need to decode from bytes
-    readyTs: 0,
-    sequence: 0,
-    taskId: parts[parts.length - 1],
-  };
+
+  let offset = prefix.length;
+
+  // Find queueId: scan for the '/' before the 8-byte priority field
+  // The queueId ends at the first '/' followed by exactly 8 bytes + '/' + 8 bytes + '/' + 8 bytes + '/' + taskId
+  // Strategy: walk from the end. Structure after queueId:
+  //   "/" + 8-byte priority + "/" + 8-byte readyTs + "/" + 8-byte sequence + "/" + taskId
+  // Total fixed overhead after queueId: 1 + 8 + 1 + 8 + 1 + 8 + 1 = 28 bytes, then taskId
+  // Find queueId by scanning for '/' such that remaining = 28 + taskId.len
+
+  // We know: after queueId, fixed structure is:
+  //   /[8 bytes]/[8 bytes]/[8 bytes]/[taskId]
+  // So scan forward to find the separator. QueueId is a plain string (no binary), 
+  // so find the first '/' after "queue/" that has at least 28 bytes remaining after it.
+  let queueIdEnd = -1;
+  for (let i = offset; i < data.length; i++) {
+    if (data[i] === 0x2F) { // '/'
+      const remaining = data.length - i - 1; // bytes after this '/'
+      // Need 8 (priority) + 1 (/) + 8 (readyTs) + 1 (/) + 8 (sequence) + 1 (/) + at least 1 (taskId) = 28
+      if (remaining >= 28) {
+        queueIdEnd = i;
+        break;
+      }
+    }
+  }
+
+  if (queueIdEnd < 0) {
+    throw new SochDBError('Invalid queue key format: cannot find queueId');
+  }
+
+  const queueId = data.subarray(offset, queueIdEnd).toString();
+  offset = queueIdEnd + 1; // skip '/'
+
+  // Read priority (8 bytes, i64 big-endian order-preserving)
+  if (offset + 8 > data.length) throw new SochDBError('Invalid queue key: truncated priority');
+  const priority = decodeI64BE(data.subarray(offset, offset + 8) as Buffer);
+  offset += 8;
+
+  // Skip '/'
+  if (data[offset] !== 0x2F) throw new SochDBError('Invalid queue key: expected / after priority');
+  offset += 1;
+
+  // Read readyTs (8 bytes, u64 big-endian)
+  if (offset + 8 > data.length) throw new SochDBError('Invalid queue key: truncated readyTs');
+  const readyTs = decodeU64BE(data.subarray(offset, offset + 8) as Buffer);
+  offset += 8;
+
+  // Skip '/'
+  if (data[offset] !== 0x2F) throw new SochDBError('Invalid queue key: expected / after readyTs');
+  offset += 1;
+
+  // Read sequence (8 bytes, u64 big-endian)
+  if (offset + 8 > data.length) throw new SochDBError('Invalid queue key: truncated sequence');
+  const sequence = decodeU64BE(data.subarray(offset, offset + 8) as Buffer);
+  offset += 8;
+
+  // Skip '/'
+  if (data[offset] !== 0x2F) throw new SochDBError('Invalid queue key: expected / after sequence');
+  offset += 1;
+
+  // Remaining is taskId
+  const taskId = data.subarray(offset).toString();
+
+  return { queueId, priority, readyTs, sequence, taskId };
 }
 
 // ============================================================================
@@ -260,11 +317,48 @@ export class PriorityQueue {
    */
   async dequeue(workerId: string): Promise<Task | null> {
     const now = Date.now();
-    const prefix = `queue/${this.config.name}/`;
-    
-    // TODO: Implement range scan to find first ready task
-    // For now, this is a placeholder
-    
+    const prefix = Buffer.from(`queue/${this.config.name}/`);
+
+    // Scan all tasks in priority order (binary sort = priority order due to big-endian encoding)
+    try {
+      for await (const [keyBuf, valueBuf] of this.db.scanPrefix(prefix)) {
+        const task: Task = JSON.parse(valueBuf.toString());
+
+        // Skip non-pending tasks
+        if (task.state !== TaskState.PENDING) {
+          continue;
+        }
+
+        // Decode key to check readyTs
+        try {
+          const queueKey = decodeQueueKey(keyBuf);
+          if (queueKey.readyTs > now) {
+            continue; // Not ready yet
+          }
+        } catch {
+          continue; // Skip malformed keys
+        }
+
+        // Claim this task atomically
+        task.state = TaskState.CLAIMED;
+        task.claimedAt = now;
+        task.claimedBy = workerId;
+
+        // Re-serialize the payload correctly (it's stored as base64 in JSON)
+        const updatedValue = Buffer.from(JSON.stringify(task));
+        await this.db.put(keyBuf, updatedValue);
+
+        // Update stats
+        await this.decrementStat('pending');
+        await this.incrementStat('claimed');
+        await this.incrementStat('totalDequeued');
+
+        return task;
+      }
+    } catch {
+      // If scan is not available via scanPrefix, return null
+    }
+
     return null;
   }
 
@@ -273,10 +367,12 @@ export class PriorityQueue {
    */
   async ack(taskId: string): Promise<void> {
     // Find and update task state
-    const task = await this.getTask(taskId);
-    if (!task) {
+    const result = await this.getTask(taskId);
+    if (!result) {
       throw new SochDBError(`Task not found: ${taskId}`);
     }
+
+    const { task } = result;
 
     if (task.state !== TaskState.CLAIMED) {
       throw new SochDBError(`Task not in claimed state: ${taskId}`);
@@ -297,11 +393,12 @@ export class PriorityQueue {
    * Negative acknowledge - return task to queue
    */
   async nack(taskId: string): Promise<void> {
-    const task = await this.getTask(taskId);
-    if (!task) {
+    const result = await this.getTask(taskId);
+    if (!result) {
       throw new SochDBError(`Task not found: ${taskId}`);
     }
 
+    const { task } = result;
     task.retries++;
     
     if (task.retries >= (this.config.maxRetries || 3)) {
@@ -339,8 +436,27 @@ export class PriorityQueue {
    * Purge completed tasks
    */
   async purge(): Promise<number> {
-    // TODO: Implement purging of completed tasks
-    return 0;
+    const prefix = Buffer.from(`queue/${this.config.name}/`);
+    let purged = 0;
+
+    try {
+      const toDelete: Buffer[] = [];
+      for await (const [keyBuf, valueBuf] of this.db.scanPrefix(prefix)) {
+        const task: Task = JSON.parse(valueBuf.toString());
+        if (task.state === TaskState.COMPLETED || task.state === TaskState.DEAD_LETTERED) {
+          toDelete.push(keyBuf);
+        }
+      }
+
+      for (const key of toDelete) {
+        await this.db.delete(key);
+        purged++;
+      }
+    } catch {
+      // Return count so far
+    }
+
+    return purged;
   }
 
   // Helper methods
@@ -348,13 +464,29 @@ export class PriorityQueue {
     return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 
-  private async getTask(taskId: string): Promise<Task | null> {
-    // TODO: Implement task lookup
+  private async getTask(taskId: string): Promise<{ task: Task; keyBuf: Buffer } | null> {
+    const prefix = Buffer.from(`queue/${this.config.name}/`);
+
+    try {
+      for await (const [keyBuf, valueBuf] of this.db.scanPrefix(prefix)) {
+        const task: Task = JSON.parse(valueBuf.toString());
+        if (task.taskId === taskId) {
+          return { task, keyBuf };
+        }
+      }
+    } catch {
+      // Scan not available
+    }
+
     return null;
   }
 
   private async updateTask(task: Task): Promise<void> {
-    // TODO: Implement task update
+    const result = await this.getTask(task.taskId);
+    if (result) {
+      const valueBuf = Buffer.from(JSON.stringify(task));
+      await this.db.put(result.keyBuf, valueBuf);
+    }
   }
 
   private async getStat(name: string): Promise<number> {

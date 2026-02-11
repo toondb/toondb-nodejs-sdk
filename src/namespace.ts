@@ -700,11 +700,22 @@ export class Namespace {
    */
   async deleteCollection(name: string): Promise<boolean> {
     const metadataKey = `_collection/${this.name}/${name}/metadata`;
-    const prefix = `_collection/${this.name}/${name}/`;
-    
-    // TODO: Delete all keys with prefix
-    await this.db.delete(Buffer.from(metadataKey));
-    
+    const prefix = Buffer.from(`_collection/${this.name}/${name}/`);
+
+    // Delete all keys with this collection prefix (vectors, metadata, etc.)
+    try {
+      const toDelete: Buffer[] = [];
+      for await (const [keyBuf] of this.db.scanPrefix(prefix)) {
+        toDelete.push(keyBuf);
+      }
+      for (const key of toDelete) {
+        await this.db.delete(key);
+      }
+    } catch {
+      // If scanPrefix fails, fall back to just deleting the metadata key
+      await this.db.delete(Buffer.from(metadataKey));
+    }
+
     return true;
   }
 
@@ -712,8 +723,24 @@ export class Namespace {
    * List all collections in this namespace
    */
   async listCollections(): Promise<string[]> {
-    // TODO: Implement efficient listing with range queries
-    return [];
+    const prefix = Buffer.from(`_collection/${this.name}/`);
+    const collections = new Set<string>();
+
+    try {
+      for await (const [keyBuf] of this.db.scanPrefix(prefix)) {
+        const key = keyBuf.toString();
+        // Key format: _collection/{namespace}/{collectionName}/...
+        const afterPrefix = key.substring(`_collection/${this.name}/`.length);
+        const collectionName = afterPrefix.split('/')[0];
+        if (collectionName) {
+          collections.add(collectionName);
+        }
+      }
+    } catch {
+      // Scan not available
+    }
+
+    return Array.from(collections);
   }
 
   getName(): string {

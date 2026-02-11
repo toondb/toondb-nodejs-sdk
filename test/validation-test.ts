@@ -225,7 +225,7 @@ async function testCheckpoint() {
 
 async function runAllTests() {
     console.log('╔════════════════════════════════════════════════════╗');
-    console.log('║  ToonDB Node.js SDK - Comprehensive Validation    ║');
+    console.log('║  SochDB Node.js SDK - Comprehensive Validation    ║');
     console.log('╚════════════════════════════════════════════════════╝');
 
     await cleanup();
